@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Etat de Virement - STE CONTACT (Montant déverrouillé)</title>
+<style>
+/* (Le même CSS que précédemment — inchangé) */
+body{font-family:"Times New Roman",serif;color:#2c3e50;margin:0;padding:0;background-color:#f8f9fa;}
+@page{size:A4;margin:2cm;}
+.header{width:100%;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
+.header-left{text-align:left;font-size:12pt;color:#2c3e50;}
+.header-center{text-align:center;font-size:14pt;font-weight:bold;flex:1;color:#1a5276;}
+.header-right{text-align:right;font-size:12pt;white-space:nowrap;color:#2c3e50;}
+.table-container{width:100%;display:flex;justify-content:center;margin-top:10px;}
+.table{border-collapse:collapse;font-size:10pt;width:100%;margin:0 auto;}
+.table th,.table td{border:1.5px solid #bdc3c7;padding:6px;text-align:center;}
+.table th{font-weight:bold;font-size:10pt;background:#34495e;color:white;border:1.5px solid #2c3e50;}
+.table td{background:white;}
+.table tr:nth-child(even){background:#f8f9fa;}
+.table td.amount{text-align:right;}
+.footer{margin-top:20px;font-size:12pt;}
+.footer .words{margin-top:15px;}
+.signature{margin-top:50px;text-align:right;font-size:12pt;font-weight:bold;}
+.no-print{margin:20px;padding:15px;background:#ecf0f1;border-radius:5px;border:1px solid #bdc3c7;}
+@media print{.no-print{display:none;}}
+input{border:1px solid #bdc3c7;padding:6px;border-radius:3px;transition:border-color 0.3s ease;}
+input:focus{border-color:#3498db;outline:none;box-shadow:0 0 5px rgba(52,152,219,0.3);}
+input.invalid{border:2px solid #e74c3c;background:#fadbd8;}
+.inline-manual{display:none;margin-top:10px;padding:10px;border:1px solid #aaa;background:#fff;}
+.inline-manual input{margin:4px 6px;}
+.btn{padding:4px 8px;border-radius:4px;border:1px solid #3498db;background:#ecf0f1;cursor:pointer;margin-left:4px;font-size:10pt;transition:all 0.3s ease;}
+.btn:hover{background:#d6dbdf;}
+.btn-primary{background:#2980b9;color:#fff;border:none;}
+.btn-primary:hover{background:#1a5276;}
+.delete{background:#e74c3c;color:white;border:none;}
+.delete:hover{background:#c0392b;}
+.unlock{background:#f39c12;color:white;border:none;}
+.unlock:hover{background:#d35400;}
+#multiSelectOverlay { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(44,62,80,0.7); z-index: 9998; }
+#multiSelectModal { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 80%; max-width: 900px; height: 80%; background: #fff; border: 2px solid #3498db; padding: 15px; overflow: auto; z-index: 9999; box-shadow: 0 8px 40px rgba(52,152,219,0.3); border-radius: 8px; }
+#employeeList label {display:block;padding:4px 6px;}
+#employee-search {width:100%;padding:6px;margin-bottom:8px;box-sizing:border-box;border:1px solid #bdc3c7;border-radius:3px;}
+select{border:1px solid #bdc3c7;padding:6px;border-radius:3px;background:white;}
+select:focus{border-color:#3498db;outline:none;}
+.employee-invalid { color: #c0392b; background: #fadbd8; }
+.employee-duplicate { color: #d35400; background: #fbeee6; }
+.employee-skipped { color: #7d3c98; background: #f4ecf7; border-left:4px solid #8e44ad; padding-left:4px; }
+.employee-status{ float:right; font-size:0.85em; color:#666; }
+#drop-zone { transition: background .15s, border-color .15s; margin-top:10px;padding:14px;border:2px dashed #27ae60; text-align:center;color:#27ae60;font-weight:bold;cursor:pointer; background:#f0f8f0; transition:all 0.3s ease; }
+#drop-zone:hover{background:#e8f6e8;border-color:#229954;}
+.btn-success{background:#27ae60;color:#fff;border:none;}
+.btn-success:hover{background:#229954;}
+#login-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(44,62,80,0.95); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+.login-form { background: white; padding: 30px; border-radius: 10px; width: 350px; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.3); }
+.login-form h2 { margin-top: 0; color: #1a5276; }
+.login-form p { color: #7f8c8d; margin-bottom: 20px; }
+#password-input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 16px; }
+#login-error { color: #e74c3c; margin: 10px 0; display: none; }
+#login-btn { width: 100%; padding: 12px; margin-top: 10px; font-size: 16px; }
+</style>
+</head>
+<body>
+<!-- Formulaire de connexion -->
+<div id="login-container">
+  <div class="login-form">
+    <h2>Accès sécurisé</h2>
+    <p>Veuillez entrer le mot de passe pour accéder à l'application</p>
+    <input type="password" id="password-input" placeholder="Mot de passe">
+    <div id="login-error">Mot de passe incorrect</div>
+    <button id="login-btn" class="btn btn-primary">Se connecter</button>
+  </div>
+</div>
+
+<!-- Contenu principal de l'application -->
+<div id="main-content" style="display:none;">
+<div class="no-print">
+  <h2 style="color:#1a5276;">Gestion des Avances - STE CONTACT</h2>
+  <div>
+    <label for="matricule">Matricule <input id="matricule" type="text" placeholder="Ex: 383"></label>
+    <button id="add-advance" class="btn btn-primary">Ajouter Avance</button>
+    <button id="new-manual-btn" class="btn">Nouveau (manuel)</button>
+    <button id="multi-select-btn" class="btn">Sélection multiple</button>
+
+    <!-- Overlay + Modal pour sélection multiple -->
+    <div id="multiSelectOverlay" style="display:none;"></div>
+
+    <div id="multiSelectModal" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="margin:0;color:#1a5276;">Sélectionner plusieurs employés</h3>
+        <button id="closeMultiSelect" class="btn">Fermer</button>
+      </div>
+
+      <input id="employee-search" placeholder="Rechercher matricule, nom ou prénom..." />
+
+      <div style="margin:6px 0;">
+        <label><input type="checkbox" id="selectAll"> Tout sélectionner</label>
+      </div>
+
+      <div id="employeeList" style="max-height:55vh;overflow:auto;border:1px solid #ddd;padding:6px;"></div>
+
+      <div style="margin-top:8px;text-align:right;">
+        <button id="addSelectedBtn" class="btn btn-primary">Ajouter sélectionnés</button>
+        <button id="cancelSelectedBtn" class="btn">Annuler</button>
+      </div>
+    </div>
+
+  </div>
+  <div style="margin-top:8px;">
+    <label>Date du jour : <input type="date" id="date-jour"></label>
+  </div>
+
+  <div id="manual-inline" class="inline-manual">
+    <strong style="color:#1a5276;">Ajout manuel rapide</strong><br>
+    <label>Bénéficiaire <input type="text" id="manual-benef-inline"></label>
+    <label>R.I.B <input type="text" id="manual-rib-inline" placeholder="20 chiffres"></label>
+    <label>Banque <input type="text" id="manual-banque-inline" placeholder="Ex: BIAT"></label>
+    <label>Montant <input type="number" id="manual-montant-inline" step="0.001" value="0"></label>
+    <div style="margin-top:6px;">
+      <button id="manual-add-inline" class="btn btn-primary">Ajouter</button>
+      <button id="manual-cancel-inline" class="btn">Annuler</button>
+    </div>
+  </div>
+
+  <table class="table" id="advance-table" style="margin-top:12px;">
+    <thead><tr><th>Bénéficiaire</th><th>Banque</th><th>R.I.B</th><th>Montant</th><th>Action</th></tr></thead>
+    <tbody></tbody>
+    <tfoot><tr><td colspan="3" style="text-align:right;background:#34495e;color:white;">TOTAL</td><td id="total-amount" style="background:#34495e;color:white;">0.000</td><td style="background:#34495e;"></td></tr></tfoot>
+  </table>
+
+  <div style="margin-top:10px;">
+    <label for="bank-select">Choisir la banque émettrice :</label>
+    <select id="bank-select">
+      <option value="BTK GROMBALIA|20023232219996530725">BTK GROMBALIA - RIB : 20023232219996530725</option>
+      <option value="ATB GROMBALIA|01034079110000586174">ATB GROMBALIA - RIB : 01034079110000586174</option>
+    </select>
+    <!-- Ajout d'ID tout en conservant onclick (aucune suppression) -->
+    <button id="btnImprimer" onclick="printEtat()" class="btn btn-primary">Imprimer Etat de Virement</button>
+    <button id="btnExporter" onclick="exportTXT()" class="btn btn-primary">Exporter TXT</button>
+    <!-- NOUVEAU BOUTON SUPPRIMER TOUT -->
+    <button id="btnSupprimerTout" class="btn delete">Supprimer tout</button>
+
+    <!-- ====== BOUTONS IMPORT EXCEL ====== -->
+    <button id="import-excel-btn" class="btn btn-primary">Importer Excel (Base)</button>
+    <button id="import-excel-manuel-btn" class="btn btn-success">Importer Excel (Manuel)</button>
+    <input type="file" id="excel-file" accept=".xlsx,.xls" style="display:none;">
+    <input type="file" id="excel-file-manuel" accept=".xlsx,.xls" style="display:none;">
+
+  </div>
+
+  <!-- ====== ZONES DE DÉPÔT ====== -->
+  <div style="display:flex;gap:10px;margin-top:10px;">
+    <div id="drop-zone-base" class="drop-zone-base" style="flex:1;padding:14px;border:2px dashed #2980b9;text-align:center;color:#2980b9;font-weight:bold;cursor:pointer;background:#eaf2f8;">
+      Glissez-déposez Excel BASE (Matricule/Montant)
+    </div>
+    <div id="drop-zone-manuel" class="drop-zone-manuel" style="flex:1;padding:14px;border:2px dashed #27ae60;text-align:center;color:#27ae60;font-weight:bold;cursor:pointer;background:#f0f8f0;">
+      Glissez-déposez Excel MANUEL (Bénéficiaire/RIB/Montant)
+    </div>
+  </div>
+
+</div>
+
+<div id="print-section" style="display:none;">
+  <div class="header">
+    <div class="header-left">
+      Société CONTACT<br>
+      ZI, 8030 Grombalia
+    </div>
+    <div class="header-center" id="rib-bank"></div>
+    <div class="header-right">
+      <div id="date-impression"></div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="table" id="etat-table">
+      <thead>
+        <tr><th>Bénéficiaire</th><th>R.I.B</th><th>Banque</th><th>Net à Payer</th></tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr><td colspan="3" style="text-align:right;font-weight:bold;background:#34495e;color:white;">Total Général</td><td id="etat-total" class="amount" style="font-weight:bold;background:#34495e;color:white;"></td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p class="words" id="total-words"></p>
+    <div class="signature">Le Gérant</div>
+  </div>
+</div>
+</div> <!-- Fin de main-content -->
+
+<script>
+/* ------------------------ GESTION DU MOT DE PASSE ------------------------ */
+const appPassword = "adminse123"; // Mot de passe par défaut
+
+document.addEventListener('DOMContentLoaded', function() {
+  const loginContainer = document.getElementById('login-container');
+  const mainContent = document.getElementById('main-content');
+  const passwordInput = document.getElementById('password-input');
+  const loginBtn = document.getElementById('login-btn');
+  const loginError = document.getElementById('login-error');
+  
+  // Vérifier le mot de passe
+  function checkPassword() {
+    const enteredPassword = passwordInput.value;
+    
+    if (enteredPassword === appPassword) {
+      // Mot de passe correct - afficher l'application
+      loginContainer.style.display = 'none';
+      mainContent.style.display = 'block';
+      
+      // Initialiser l'application
+      initApp();
+    } else {
+      // Mot de passe incorrect
+      loginError.style.display = 'block';
+      passwordInput.value = '';
+      passwordInput.focus();
+      
+      // Effacer le message d'erreur après 3 secondes
+      setTimeout(() => {
+        loginError.style.display = 'none';
+      }, 3000);
+    }
+  }
+  
+  // Écouteur d'événement pour le bouton de connexion
+  loginBtn.addEventListener('click', checkPassword);
+  
+  // Écouteur d'événement pour la touche Entrée
+  passwordInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      checkPassword();
+    }
+  });
+  
+  // Mettre le focus sur le champ de mot de passe
+  passwordInput.focus();
+});
+
+// Fonction pour initialiser l'application après la connexion
+function initApp() {
+  // Initialiser la date du jour
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('date-jour').value = today;
+  
+  // Initialiser le tableau
+  renderTable();
+}
+
+/* ------------------------ CONFIG / CONSTANTES ------------------------ */
+const SECRET_CODE = "123";
+
+/* ------------------------ DONNÉES EMPLOYÉS ------------------------ */
+const employees = {
+   "4": {"nom":"BEN ROMDHANE","prenom":"KARIM","rib":"14101101100706024024","banque":"BH BANK"},
+  "5": {"nom":"CHEIK","prenom":"HENDA","rib":"07403004810557912828","banque":"AMEN BANK"},
+  "6": {"nom":"ELLAFI","prenom":"HABIB","rib":"01034079111008820567","banque":"ATB"},
+  "9": {"nom":"SAADANI","prenom":"AMIR","rib":"01034079111008810479","banque":"ATB"},
+  "10": {"nom":"MERTIL","prenom":"NADIA","rib":"01034079113009829105","banque":"ATB"},
+  "12": {"nom":"SOUISSI","prenom":"MONDHER","rib":"01034079111009032609","banque":"ATB"},
+  "16": {"nom":"KHALFAOUI","prenom":"AFEF","rib":"07403004810558405879","banque":"AMEN BANK"},
+  "18": {"nom":"AOUALI","prenom":"ABDELWAHEB","rib":"07403004810557921946","banque":"AMEN BANK"},
+  "19": {"nom":"FEZANI","prenom":"ADEL","rib":"01034079111016186262","banque":"ATB"},
+  "20": {"nom":"MHAMDI","prenom":"ILHEM","rib":"14101101100708169567","banque":"BH BANK"},
+  "22": {"nom":"OUERGHEMI","prenom":"KAOUTHER","rib":"07403004810558088592","banque":"AMEN BANK"},
+  "23": {"nom":"HOUAS","prenom":"YOSSRA","rib":"14101101100709431828","banque":"BH BANK"},
+  "24": {"nom":"BOUHALI","prenom":"FAOUZIA","rib":"11050002207800878863","banque":"UBCI"},
+  "25": {"nom":"BEN EL BECHIR","prenom":"ASMA","rib":"03301030010110725562","banque":"BNA"},
+  "27": {"nom":"MAJDOUB","prenom":"MOUNA","rib":"14101101100711388318","banque":"BH BANK"},
+  "28": {"nom":"ABID","prenom":"IMEN","rib":"07403004810557907105","banque":"AMEN BANK"},
+  "29": {"nom":"GHASSEN","prenom":"MLAOUEH","rib":"05304000055528221464","banque":"BT"},
+  "30": {"nom":"JELLALI","prenom":"HASNA","rib":"20023232220054479301","banque":"BTK"},
+  "34": {"nom":"AMERI","prenom":"NAJIBA","rib":"14101101100708754768","banque":"BH BANK"},
+  "35": {"nom":"MHAMDI","prenom":"AMIRA","rib":"14101101100711420328","banque":"BH"},
+  "37": {"nom":"RABAOUI","prenom":"MOHAMED","rib":"20023232220014576411","banque":"BTK"},
+  "44": {"nom":"NEMRI","prenom":"GHAZI","rib":"20023232229997577694","banque":"BTK"},
+  "47": {"nom":"SAADANI","prenom":"MOHAMED ALI","rib":"20023232220085772859","banque":"BTK"},
+  "48": {"nom":"KORBSI","prenom":"SAMIA","rib":"10302013510273978853","banque":"STB BANK"},
+  "53": {"nom":"MIRGHNI","prenom":"RAWDHA","rib":"20023232220090772627","banque":"BTK"},
+  "57": {"nom":"ZEIRI","prenom":"MBARKA","rib":"14101101100708801813","banque":"BH BANK"},
+  "58": {"nom":"ZEIRI","prenom":"DHAHBIA","rib":"14101101100708802201","banque":"BH BANK"},
+  "64": {"nom":"HOUYET","prenom":"RABIAA","rib":"07403004810558323720","banque":"AMEN BANK"},
+  "65": {"nom":"HOUIETTE","prenom":"OMKHELIFA","rib":"14101101100708821407","banque":"BH BANK"},
+  "68": {"nom":"SAADANI","prenom":"IKRAM","rib":"14101101100711337878","banque":"BH BANK"},
+  "72": {"nom":"SELMI","prenom":"NAJIBA","rib":"07403004810558409274","banque":"AMEN BANK"},
+  "129": {"nom":"OCHII","prenom":"HAGER","rib":"20023232220071779639","banque":"BTK"},
+  "185": {"nom":"CHOUCHEN","prenom":"HAYTHEM","rib":"20023232220010375147","banque":"BTK"},
+  "190": {"nom":"RHIMI","prenom":"IMENE","rib":"14101101100710752677","banque":"BH BANK"},
+  "199": {"nom":"SAHLAOUI","prenom":"SABAH","rib":"14101101100710885082","banque":"BH BANK"},
+  "206": {"nom":"HICHRI","prenom":"MARWEN","rib":"20023232229994825901","banque":"BTK"},
+  "215": {"nom":"LAKTI","prenom":"SONIA","rib":"12019000000226689890","banque":"UIB"},
+  "231": {"nom":"ABBASSI","prenom":"KHEMISSA","rib":"14101101100711502196","banque":"BH"},
+  "254": {"nom":"OMRI","prenom":"ANOUAR","rib":"20023232220020699148","banque":"BTK"},
+  "298": {"nom":"BOUSETTA","prenom":"ZOUHAIER","rib":"20023232220044660767","banque":"BTK"},
+  "335": {"nom":"SAADANI","prenom":"EYA","rib":"20023232220086694456","banque":"BTK"},
+  "339": {"nom":"EL ATI","prenom":"GHOFRANE","rib":"20023232220085772859","banque":"BTK"},
+  "344": {"nom":"HOUAS","prenom":"NABILA","rib":"01034079111027118841","banque":"ATB"},
+  "346": {"nom":"TRABELSI","prenom":"ZINA","rib":"14101101100712663868","banque":"BH BANK"},
+  "351": {"nom":"OMRI","prenom":"CHAIMA","rib":"14101101100712299827","banque":"BH"},
+  "355": {"nom":"ISSAOUI","prenom":"AMINA","rib":"14101101100711348160","banque":"BH BANK"},
+  "357": {"nom":"ICHII","prenom":"NAJLA","rib":"14101101100711175112","banque":"CCP"},
+  "373": {"nom":"HABASSI","prenom":"AHLEM","rib":"14101101100711427506","banque":"BH"},
+  "383": {"nom":"MOKHTAR","prenom":"SEIFEDDINE","rib":"05304000055500448618","banque":"BT"},
+  "384": {"nom":"BEN HMED","prenom":"SALEM","rib":"20023232220078861415","banque":"BTK"},
+  "446": {"nom":"SMATI","prenom":"NESSRIA","rib":"20023232220041607207","banque":"BTK"},
+  "450": {"nom":"JEBRANI","prenom":"MAROUA","rib":"08300000002009798143","banque":"BIAT"},
+  "452": {"nom":"JEBALI","prenom":"TAREK","rib":"14906906100704232783","banque":"BH BANK"},
+  "463": {"nom":"DABBABI","prenom":"HATEM","rib":"20023232220089850545","banque":"BTK"},
+  "466": {"nom":"BALTI","prenom":"HAIFA","rib":"14101101100712251909","banque":"BH"},
+  "470": {"nom":"BEN LEKHEL","prenom":"KHALIL","rib":"05301000011500521932","banque":"BT"},
+  "475": {"nom":"MERHREZ","prenom":"KABIL","rib":"20023232220108982922","banque":"BTK"},
+  "476": {"nom":"AJENGUI","prenom":"IMEN","rib":"08099027072001850816","banque":"BIAT"},
+  "478": {"nom":"GHANMI","prenom":"WAFA","rib":"01034079111027220206","banque":"ATB"},
+  "482": {"nom":"KHOULOUD","prenom":"GHATTAS","rib":"05301000011500300384","banque":"BT"},
+  "489": {"nom":"MANSER","prenom":"MAHER","rib":"01034079111027684836","banque":"ATB"},
+  "491": {"nom":"AISSA","prenom":"RAJA","rib":"04086171001601327826","banque":"ATTIJARI BANK"},
+  "498": {"nom":"DALI","prenom":"MOHAMED","rib":"12080000000239816289","banque":"UIB"},
+  "499": {"nom":"CHOUCHEN","prenom":"SADOK","rib":"14101101100711707545","banque":"BH"},
+  "500": {"nom":"HMIDI","prenom":"SOFIEN","rib":"14101101100711044647","banque":"BH"},
+  "501": {"nom":"BEN AZIZA","prenom":"Khaled","rib":"17535940174235146981","banque":"ONP"},
+  "502": {"nom":"Saida","prenom":"Younes","rib":"17002000000330644916","banque":"LA POSTE"},
+  "503": {"nom":"RGAIEG","prenom":"WAFA","rib":"14101101100708997462","banque":"BH"},
+  "505": {"nom":"HOUMENI","prenom":"Nizar","rib":"17002000000332659509","banque":"ONP"},
+  "506": {"nom":"CHALLOUF","prenom":"HAMDI","rib":"05304000055500972030","banque":"BT"},
+  "507": {"nom":"MAHMOUD","prenom":"HANADI","rib":"25094000000122325580","banque":"Zitouna"},
+  "508": {"nom":"OTHMEN","prenom":"HAMDI","rib":"17002000000343810338","banque":"poste"},
+  "509": {"nom":"REZGUI","prenom":"MANEL","rib":"11050002324300878879","banque":"UBCI"},
+  "510": {"nom":"RIAHI","prenom":"ADEL","rib":"17002000000345206750","banque":"Poste"},
+  "513": {"nom":"BEN DRISS","prenom":"FARES","rib":"05301000011500372067","banque":"Banque de tunis"},
+  "514": {"nom":"TORKHANI","prenom":"EMNA","rib":"17002000000344950282","banque":"POSTE"},
+  "515": {"nom":"AMIRI","prenom":"MOHAMED","rib":"05304000055500338232","banque":"BT"},
+  "10012": {"nom":"KHADHRAOUI","prenom":"NEJMA","rib":"17535940171375539160","banque":"ONP"},
+  "10014": {"nom":"ZAAFOURI","prenom":"RABAA","rib":"14101101100711894173","banque":"BH"},
+  "10024": {"nom":"ROMDHANI","prenom":"ISLEM","rib":"14101101100712371122","banque":"BH"},
+  "10034": {"nom":"MHADHBI","prenom":"RANIM","rib":"17535940172121890334","banque":"ONP"},
+  "10036": {"nom":"AWLED SAAD","prenom":"FADHILA","rib":"17535940172077823816","banque":"ONP"},
+  "10040": {"nom":"GARRADHI","prenom":"HANEN","rib":"14101101100712072944","banque":"BH"},
+  "10052": {"nom":"HOUASS","prenom":"FERYEL","rib":"17535940171556790159","banque":"ONP"},
+  "10082": {"nom":"KARIMA","prenom":"LAKTI","rib":"17535940172075775273","banque":"CCP"},
+  "10098": {"nom":"NOUHA","prenom":"BOUSIFI","rib":"17535940172079890595","banque":"CCP"},
+  "10128": {"nom":"KHEMIRI","prenom":"SAOUSSEN","rib":"14101101100712380434","banque":"BH"},
+  "10129": {"nom":"TRABELSI","prenom":"INES","rib":"17002000000234295786","banque":"CCP"},
+  "10170": {"nom":"AKREMI DORAI","prenom":"MAROUA","rib":"08109000034004505085","banque":"BIAT"},
+  "10360": {"nom":"SONDES","prenom":"SAIDI","rib":"17535940171273015592","banque":"ONP"},
+  "10418": {"nom":"LILIA","prenom":"FOURATI","rib":"17002000000298052140","banque":"CCP"},
+  "10421": {"nom":"MAROUEN","prenom":"CHOUCHEN","rib":"07403004810581158975","banque":"AMEN BANK"},
+  "10426": {"nom":"AMRI","prenom":"IMEN","rib":"17002000000299664862","banque":"CCP"},
+  "10427": {"nom":"MAROUEN","prenom":"IBTISSEM","rib":"07403004810581202625","banque":"AMEN BANK"},
+  "10443": {"nom":"MAROUENI","prenom":"SAOUSSEN","rib":"17002000000300050146","banque":"CCP"},
+  "10452": {"nom":"CHEBEL","prenom":"MARIEM","rib":"04086171007293396369","banque":"ATTIJARI"},
+  "10460": {"nom":"ELKAMEL","prenom":"KHOULOUD","rib":"04086171007338884519","banque":"ATTIJARI"},
+  "10501": {"nom":"ICHI","prenom":"ALAEDDINE","rib":"17535940171377111724","banque":"ONP"},
+  "10511": {"nom":"HOUASS","prenom":"NESRINE","rib":"07403004810581490812","banque":"AMEN BANK"},
+  "10512": {"nom":"TRABELSI","prenom":"FATMA","rib":"07073013110554696581","banque":"AMEN BANK"},
+  "10528": {"nom":"BEDHYAFI","prenom":"HOUDA","rib":"08301000014094555223","banque":"BIAT"},
+  "10529": {"nom":"BEDHYAFI","prenom":"CHAFIKA","rib":"04086171005127092459","banque":"ATTIJARI"},
+  "10546": {"nom":"MNARI","prenom":"JAMILA","rib":"01034079113026612433","banque":"ATB"},
+  "10552": {"nom":"ABID","prenom":"FATEN","rib":"20023232220040234754","banque":"BTK"},
+  "10579": {"nom":"JLASSI","prenom":"JAMILA","rib":"17535940172074921382","banque":"ONP"},
+  "10583": {"nom":"TRABELSI","prenom":"KHOULOUD","rib":"10302013073448278849","banque":"STB"},
+  "10597": {"nom":"THAIRI","prenom":"ROCHDI","rib":"14101101100711659045","banque":"BH"},
+  "10598": {"nom":"Zrelli","prenom":"Itidel","rib":"17535940174310076668","banque":"ONP"},
+  "10600": {"nom":"Houas","prenom":"Intissar","rib":"17535940174311732361","banque":"Poste"},
+  "10609": {"nom":"FERSI","prenom":"Sameh","rib":"17535940174459828178","banque":"ONP"},
+  "10616": {"nom":"Thairi","prenom":"Monia","rib":"04086171007994407027","banque":"Attijari Bank"},
+  "10620": {"nom":"Amdouni","prenom":"Houda","rib":"20023232220088461796","banque":"BTK"},
+  "10624": {"nom":"Radaoui","prenom":"Sonia","rib":"17535940171377105904","banque":"ONP"},
+  "10633": {"nom":"Maayoufi","prenom":"Basma","rib":"17606000000081814288","banque":"ONP"},
+  "10637": {"nom":"Ghahar","prenom":"Sabri","rib":"17535940172531419581","banque":"ONP"},
+  "10646": {"nom":"Chhibi","prenom":"Saliha","rib":"01034079113027814748","banque":"ATB"},
+  "10652": {"nom":"HAMZA","prenom":"HANA","rib":"01034079113027643058","banque":"ATB"},
+  "10653": {"nom":"BEN NASRALLAH","prenom":"INES","rib":"08109000032007793162","banque":"BIAT"},
+  "10658": {"nom":"SAIIDAOUI","prenom":"MANEL","rib":"17535940174235137863","banque":"ONP"},
+  "10664": {"nom":"DHAMER","prenom":"KARIMA","rib":"17535940172080853029","banque":"ONP"},
+  "10678": {"nom":"CHEMKHI","prenom":"Assia","rib":"17606000000359649739","banque":"ONP"},
+  "10679": {"nom":"SASSI","prenom":"Hanen","rib":"10302013511630078817","banque":"STB"},
+  "10687": {"nom":"M'HADHBI","prenom":"Roua","rib":"17535940171272876106","banque":"ONP"},
+  "10700": {"nom":"MARWEN","prenom":"Marwa","rib":"01034079113028360567","banque":"ATB"},
+  "10701": {"nom":"AISSAOUI","prenom":"ZINA","rib":"25044000000100836801","banque":"ZEITOUNA"},
+  "10715": {"nom":"RAGOUBI","prenom":"Ahlem","rib":"12019000000242909648","banque":"UIB"},
+  "10716": {"nom":"TRABELSI","prenom":"KHEDIJA","rib":"17002000000104812620","banque":"ONP"},
+  "10723": {"nom":"DABBABI","prenom":"WAHID","rib":"17535940172080033961","banque":"ONP"},
+  "10740": {"nom":"NAHALI","prenom":"SALIM","rib":"17002000000344014038","banque":"Poste"},
+  "10746": {"nom":"HAMZAOUI","prenom":"SONIA","rib":"17535940172200710788","banque":"Poste"},
+  "10755": {"nom":"NAWALI","prenom":"ISLEM","rib":"04086171007138642957","banque":"Attijari"},
+  "10758": {"nom":"TRABELSI","prenom":"RABEB","rib":"17206000000237150725","banque":"Poste"},
+  "10760": {"nom":"RAGOUBI","prenom":"MANEL","rib":"04086171008706241042","banque":"Attijari"},
+  "10761": {"nom":"RAGOUBI","prenom":"NOUHA","rib":"17002000000149439992","banque":"Poste"},
+  "10768": {"nom":"MECHERGUI","prenom":"ROUA","rib":"17535940172880577774","banque":"Poste"},
+  "10782": {"nom":"HAMROUNI","prenom":"MAISA","rib":"17535940170595640342","banque":"POSTE"},
+  "10783": {"nom":"GHADA","prenom":"CHEIKH","rib":"17535940172918443858","banque":"POSTE"},
+  "10784": {"nom":"BOUKHILI","prenom":"SALMA","rib":"17535940172715802031","banque":"Poste"},
+  "10786": {"nom":"TRABELSI","prenom":"MAISSA","rib":"17535940174107108436","banque":"Poste"},
+  "10787": {"nom":"MASTOURI","prenom":"WEJDEN","rib":"07403004810559938673","banque":"AMEN"},
+  "10790": {"nom":"SOUISSI","prenom":"SABEH","rib":"17535940172530537560","banque":"Poste"},
+  "10805": {"nom":"CHNINI","prenom":"BASMA","rib":"17801000000349030037","banque":"poste"},
+  "10806": {"nom":"SHILI","prenom":"AMANI","rib":"14101101100712418943","banque":"BH"},
+  "10807": {"nom":"DRIDI","prenom":"KHAWLA","rib":"17535940174234620465","banque":"poste"},
+  "10809": {"nom":"MEJRI","prenom":"KAIS","rib":"08109000034005680919","banque":"BIAT"},
+  "10813": {"nom":"SOUDENI","prenom":"SIWAR","rib":"17535940172673448242","banque":"Poste"},
+  "10819": {"nom":"BOUKHILI","prenom":"TAKWA","rib":"17535940172715803874","banque":"poste"},
+  "10822": {"nom":"RAGOUBI","prenom":"REBEH","rib":"17002000000104812911","banque":"Poste"},
+  "10823": {"nom":"YOUNSI","prenom":"MALIKA","rib":"08109000034005188256","banque":"BIAT"},
+  "10824": {"nom":"AYACHI","prenom":"IMEN","rib":"12019000000233774964","banque":"UIB"},
+  "10825": {"nom":"SHILI","prenom":"FERIEL","rib":"14101101100711060458","banque":"BH"},
+  "10826": {"nom":"MZOUGHI","prenom":"KHOULOUD","rib":"17535940173403335606","banque":"CCP"},
+  "10827": {"nom":"CHOUCHEN","prenom":"DORSAF","rib":"17535940171469141347","banque":"ccp"},
+  "10828": {"nom":"CHEIKH","prenom":"NOURHENE","rib":"17535940363428501131","banque":"POSTE"},
+  "10831": {"nom":"KORRANI","prenom":"HNIA","rib":"11050002303500878849","banque":"UBCI"},
+  "10832": {"nom":"SGHAIER","prenom":"AMEL","rib":"17002000000193555301","banque":"Poste"},
+  "10833": {"nom":"TORKHANI","prenom":"ACHWEK","rib":"17535940171282603751","banque":"poste"},
+  "10834": {"nom":"YAAKOUBI","prenom":"SOUAD","rib":"17535940171377095234","banque":"poste"},
+  "10836": {"nom":"JANDOUBI","prenom":"WIEM","rib":"17701000000352383656","banque":"POSTE"},
+  "10837": {"nom":"OCHI","prenom":"THOURAYA","rib":"07403004810581909464","banque":"AMEN"},
+  "10843": {"nom":"AOUISSAOUI","prenom":"LOUAY","rib":"17535940172925133657","banque":"Poste"},
+  "10844": {"nom":"BOUZAYEN","prenom":"EYA","rib":"20023232010070603961","banque":"BTK"},
+  "10846": {"nom":"SALHI","prenom":"BADISS","rib":"17002000000352370491","banque":"POSTE"},
+  "10848": {"nom":"DABBABI","prenom":"ZAINEB","rib":"17535940174234644424","banque":"Poste"},
+  "10849": {"nom":"FERCHICHI","prenom":"SAMIHA","rib":"07403004810581133076","banque":"AMEN"},
+  "10851": {"nom":"OTAI","prenom":"IKRAM","rib":"14101101116700027910","banque":"BH"},
+  "10852": {"nom":"BEN ROMDHANE","prenom":"HENDA","rib":"08109000032005023521","banque":"BIAT"},
+  "10854": {"nom":"BEDHAYFI","prenom":"MOHAMED","rib":"04086171008080932094","banque":"ATTIJARI"}
+};
+
+/* ------------------------ VARIABLE D'ÉTAT ------------------------ */
+let advances = [];
+
+/* ------------------------ UTILITAIRES ------------------------ */
+function validateRIB(rib, inputEl){
+  const regex=/^[0-9]{20}$/;
+  if(!regex.test((rib||"").toString().replace(/\s/g,''))){
+    if(inputEl) inputEl.classList.add("invalid");
+    return false;
+  } else {
+    if(inputEl) inputEl.classList.remove("invalid");
+    return true;
+  }
+}
+
+function ribExists(rib, exceptObj=null){
+  return advances.some(a => a !== exceptObj && a.rib === rib);
+}
+
+// ====================== FONCTIONNALITÉS IMPORT EXCEL ======================
+
+/* === IMPORT EXCEL BASE (Matricule/Montant) === */
+function handleExcelFileBase(file) {
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      if(!rows || rows.length === 0) { alert("Fichier vide ou feuille vide."); return; }
+      const headers = (rows[0]||[]).map(h => (h||"").toString().toLowerCase().trim());
+      const matriculeIndex = headers.findIndex(h => h.includes("matricule"));
+      const montantIndex = headers.findIndex(h => h.includes("montant"));
+
+      if (matriculeIndex === -1 || montantIndex === -1) {
+        alert("Erreur : colonnes attendues : 'Matricule' et 'Montant'");
+        return;
+      }
+
+      let added = 0, skipped = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i] || [];
+        const rawMat = row[matriculeIndex];
+        const rawMont = row[montantIndex];
+
+        const mat = rawMat !== undefined && rawMat !== null ? rawMat.toString().trim() : "";
+        const montant = Number(rawMont) || 0;
+
+        if (!mat || !employees[mat]) {
+          skipped.push((mat && mat.length>0)? (mat + " (inconnu)") : "(vide)");
+          continue;
+        }
+
+        const emp = employees[mat];
+        if (!validateRIB(emp.rib)) {
+          skipped.push(mat + " (RIB invalide)");
+          continue;
+        }
+
+        if (ribExists(emp.rib)) {
+          const code = prompt("RIB " + emp.rib + " déjà utilisé. Entrez le code secret pour autoriser le doublon :");
+          if (code !== SECRET_CODE) {
+            skipped.push(mat + " (RIB déjà utilisé, ignoré)");
+            continue;
+          }
+        }
+
+        const benef = (emp.nom || "") + " " + (emp.prenom || "");
+        advances.push({
+          beneficiaire: benef.trim(),
+          rib: emp.rib,
+          banque: emp.banque,
+          montant: montant
+        });
+        added++;
+      }
+
+      renderTable();
+
+      let msg = `${added} avance(s) importée(s) depuis la base.`;
+      if (skipped.length > 0) {
+        msg += "\nIgnorés : " + skipped.join(", ");
+      }
+      alert(msg);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la lecture du fichier Excel : " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* === IMPORT EXCEL MANUEL (Bénéficiaire/RIB/Montant) === */
+function handleExcelFileManuel(file) {
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      if(!rows || rows.length === 0) { alert("Fichier vide ou feuille vide."); return; }
+      const headers = (rows[0]||[]).map(h => (h||"").toString().toLowerCase().trim());
+      
+      // Recherche des colonnes avec noms flexibles
+      const benefIndex = headers.findIndex(h => h.includes("bénéficiaire") || h.includes("beneficiaire") || h.includes("nom"));
+      const ribIndex = headers.findIndex(h => h.includes("rib") || h.includes("compte"));
+      const montantIndex = headers.findIndex(h => h.includes("montant") || h.includes("amount"));
+      const banqueIndex = headers.findIndex(h => h.includes("banque") || h.includes("bank"));
+
+      if (benefIndex === -1 || ribIndex === -1 || montantIndex === -1) {
+        alert("Erreur : colonnes attendues : 'Bénéficiaire', 'RIB' et 'Montant'");
+        return;
+      }
+
+      let added = 0, skipped = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i] || [];
+        const rawBenef = row[benefIndex];
+        const rawRib = row[ribIndex];
+        const rawMont = row[montantIndex];
+        const rawBanque = banqueIndex !== -1 ? row[banqueIndex] : "";
+
+        const benef = rawBenef !== undefined && rawBenef !== null ? rawBenef.toString().trim() : "";
+        const rib = rawRib !== undefined && rawRib !== null ? rawRib.toString().trim() : "";
+        const montant = Number(rawMont) || 0;
+        const banque = rawBanque !== undefined && rawBanque !== null ? rawBanque.toString().trim() : "Non spécifié";
+
+        if (!benef) {
+          skipped.push("Ligne " + (i+1) + " (bénéficiaire vide)");
+          continue;
+        }
+
+        if (!rib) {
+          skipped.push(benef + " (RIB vide)");
+          continue;
+        }
+
+        if (!validateRIB(rib)) {
+          skipped.push(benef + " (RIB invalide)");
+          continue;
+        }
+
+        if (montant <= 0) {
+          skipped.push(benef + " (montant invalide)");
+          continue;
+        }
+
+        if (ribExists(rib)) {
+          const code = prompt("RIB " + rib + " déjà utilisé pour " + benef + ". Entrez le code secret pour autoriser le doublon :");
+          if (code !== SECRET_CODE) {
+            skipped.push(benef + " (RIB déjà utilisé, ignoré)");
+            continue;
+          }
+        }
+
+        advances.push({
+          beneficiaire: benef,
+          rib: rib,
+          banque: banque,
+          montant: montant
+        });
+        added++;
+      }
+
+      renderTable();
+
+      let msg = `${added} avance(s) importée(s) manuellement.`;
+      if (skipped.length > 0) {
+        msg += "\nIgnorés : " + skipped.join(", ");
+      }
+      alert(msg);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la lecture du fichier Excel : " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* === GESTION DES BOUTONS ET DROP ZONES === */
+
+// Import Excel Base
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById("import-excel-btn").addEventListener("click", () => {
+    document.getElementById("excel-file").click();
+  });
+  
+  document.getElementById("excel-file").addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      handleExcelFileBase(e.target.files[0]);
+      e.target.value = "";
+    }
+  });
+
+  // Import Excel Manuel
+  document.getElementById("import-excel-manuel-btn").addEventListener("click", () => {
+    document.getElementById("excel-file-manuel").click();
+  });
+  
+  document.getElementById("excel-file-manuel").addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      handleExcelFileManuel(e.target.files[0]);
+      e.target.value = "";
+    }
+  });
+
+  // Drop Zone Base
+  const dropZoneBase = document.getElementById("drop-zone-base");
+  dropZoneBase.addEventListener("click", () => document.getElementById("excel-file").click());
+  setupDropZone(dropZoneBase, handleExcelFileBase);
+
+  // Drop Zone Manuel
+  const dropZoneManuel = document.getElementById("drop-zone-manuel");
+  dropZoneManuel.addEventListener("click", () => document.getElementById("excel-file-manuel").click());
+  setupDropZone(dropZoneManuel, handleExcelFileManuel);
+});
+
+// Fonction générique pour setup drop zones
+function setupDropZone(dropZone, handler) {
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.style.background = dropZone === dropZoneBase ? "#d6eaf8" : "#e8f6e8";
+    dropZone.style.borderColor = dropZone === dropZoneBase ? "#1a5276" : "#229954";
+  });
+  
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.style.background = dropZone === dropZoneBase ? "#eaf2f8" : "#f0f8f0";
+    dropZone.style.borderColor = dropZone === dropZoneBase ? "#2980b9" : "#27ae60";
+  });
+  
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.style.background = dropZone === dropZoneBase ? "#eaf2f8" : "#f0f8f0";
+    dropZone.style.borderColor = dropZone === dropZoneBase ? "#2980b9" : "#27ae60";
+    if (e.dataTransfer.files.length > 0) {
+      handler(e.dataTransfer.files[0]);
+    }
+  });
+}
+
+/* ------------------------ SÉLECTION MULTIPLE ------------------------ */
+(function(){
+  function ouvrirSelectionMultiple(){
+    const overlay=document.getElementById('multiSelectOverlay');
+    const modal=document.getElementById('multiSelectModal');
+    const container=document.getElementById('employeeList');
+    if(!container) return alert("Erreur: element employeeList introuvable.");
+    container.innerHTML = '';
+
+    const keys = Object.keys(employees).filter(k => /^\d+$/.test(k)).sort((a,b)=> Number(a) - Number(b));
+    const ribCount = {};
+    for(const id of keys){
+      const r = (employees[id] && (employees[id].rib||'')).toString().replace(/\D/g,'');
+      if(r) ribCount[r] = (ribCount[r]||0) + 1;
+    }
+
+    for(const id of keys){
+      const emp = employees[id] || {};
+      const nomPrenom = ((emp.nom||'') + ' ' + (emp.prenom||'')).trim();
+      const rawRib = (emp.rib||'').toString();
+      const digitsRib = rawRib.replace(/\D/g,'');
+      const isValid = (/^[0-9]{20}$/.test(digitsRib));
+      const isDupAdvance = rawRib && ribExists(rawRib);
+      const isDupEmployees = digitsRib && ribCount[digitsRib] > 1;
+
+      const label = document.createElement('label');
+      label.style.display = 'block';
+      const checkboxDisabled = !isValid || isDupAdvance || isDupEmployees;
+
+      const status = [];
+      if(!isValid) status.push('RIB invalide');
+      if(isDupAdvance) status.push('RIB déjà en liste');
+      if(isDupEmployees) status.push('RIB doublé (employés)');
+      const statusText = status.length ? status.join(' / ') : '';
+
+      if(!isValid) label.classList.add('employee-invalid');
+      if(isDupAdvance || isDupEmployees) label.classList.add('employee-duplicate');
+
+      label.innerHTML = `<input type="checkbox" value="${id}" ${checkboxDisabled ? 'disabled' : ''} /> ${id} - ${nomPrenom} <span class="employee-status">${statusText}</span>`;
+      container.appendChild(label);
+    }
+
+    overlay.style.display = 'block';
+    modal.style.display = 'block';
+  }
+
+  function closeMultiSelect(){
+    const overlay = document.getElementById('multiSelectOverlay');
+    const modal = document.getElementById('multiSelectModal');
+    if(overlay) overlay.style.display = 'none';
+    if(modal) modal.style.display = 'none';
+  }
+
+  function ajouterParId(id){
+    if(!employees[id]) return {ok:false, reason:'notfound'};
+    const emp = employees[id];
+    if(!validateRIB(emp.rib)) return {ok:false, reason:'invalid'};
+    if(emp.rib && ribExists(emp.rib)) {
+      const code = prompt("RIB " + emp.rib + " déjà utilisé. Entrez le code secret pour autoriser le doublon :");
+      if (code !== SECRET_CODE) return {ok:false, reason:'dupAdvance'};
+    }
+    const benef = ((emp.nom||'') + ' ' + (emp.prenom||'')).trim();
+    advances.push({beneficiaire: benef, rib: emp.rib||'', banque: emp.banque||'', montant: 0});
+    return {ok:true};
+  }
+
+  function ajouterEmployesSelectionnes(){
+    const boxes = Array.from(document.querySelectorAll('#employeeList input[type=checkbox]')).filter(cb => cb.checked && !cb.disabled);
+    if(boxes.length === 0){
+      alert('Aucun employé valide sélectionné.');
+      return;
+    }
+    let added = 0, invalid = 0, dupAdvance = 0, notfound = 0;
+    for(const cb of boxes){
+      const res = ajouterParId(cb.value);
+      if(res.ok) added++;
+      else {
+        if(res.reason === 'invalid') invalid++;
+        else if(res.reason === 'dupAdvance') dupAdvance++;
+        else notfound++;
+        const label = cb.closest('label');
+        if(label) label.classList.add('employee-skipped');
+      }
+    }
+
+    if(typeof renderTable === 'function') renderTable();
+
+    const parts = [];
+    parts.push(`${added} ajouté${added>1?'s':''}`);
+    const ignored = invalid + dupAdvance + notfound;
+    if(ignored > 0){
+      const details = [];
+      if(invalid) details.push(`${invalid} RIB invalide${invalid>1?'s':''}`);
+      if(dupAdvance) details.push(`${dupAdvance} RIB déjà en liste (ou code incorrect)`);
+      if(notfound) details.push(`${notfound} introuvable`);
+      parts.push(`${ignored} ignoré${ignored>1?'s':''} (${details.join(', ')})`);
+    }
+    alert(parts.join(' — '));
+
+    closeMultiSelect();
+  }
+
+  // Initialisation des événements après le chargement du DOM
+  document.addEventListener('DOMContentLoaded', function() {
+    const multiBtn = document.getElementById('multi-select-btn');
+    if(multiBtn){
+      multiBtn.addEventListener('click', ouvrirSelectionMultiple);
+    }
+    
+    const closeBtn = document.getElementById('closeMultiSelect'); 
+    if(closeBtn) closeBtn.addEventListener('click', closeMultiSelect);
+    
+    const cancelBtn = document.getElementById('cancelSelectedBtn'); 
+    if(cancelBtn) cancelBtn.addEventListener('click', closeMultiSelect);
+    
+    const addBtn = document.getElementById('addSelectedBtn'); 
+    if(addBtn) addBtn.addEventListener('click', ajouterEmployesSelectionnes);
+    
+    const selAll = document.getElementById('selectAll');
+    if(selAll) selAll.addEventListener('change', function(e){
+      const checked = e.target.checked;
+      document.querySelectorAll('#employeeList input[type=checkbox]').forEach(cb=>{ 
+        if(!cb.disabled) cb.checked = checked; 
+      });
+    });
+    
+    const search = document.getElementById('employee-search');
+    if(search) search.addEventListener('input', function(e){
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('#employeeList label').forEach(label=>{
+        label.style.display = label.textContent.toLowerCase().includes(q) ? 'block' : 'none';
+      });
+    });
+  });
+
+  window.ouvrirSelectionMultiple = ouvrirSelectionMultiple;
+  window.ajouterEmployesSelectionnes = ajouterEmployesSelectionnes;
+})();
+
+/* ------------------------ AJOUT PAR MATRICULE (bouton) ------------------------ */
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('add-advance').addEventListener('click', () => {
+    const mat = document.getElementById('matricule').value.trim();
+    if(!mat) return;
+    if(employees[mat]){
+      const emp=employees[mat];
+      const benef=(emp.nom||"")+" "+(emp.prenom||"");
+      if(emp.rib && ribExists(emp.rib)){
+        const code = prompt("RIB " + emp.rib + " déjà utilisé. Entrez le code secret pour autoriser le doublon :");
+        if (code !== SECRET_CODE) { alert("Ajout annulé (code incorrect)."); return; }
+      }
+      advances.push({beneficiaire:benef.trim(),rib:emp.rib||"",banque:emp.banque||"",montant:0});
+      renderTable();
+    } else {
+      alert("Matricule introuvable : " + mat);
+    }
+  });
+});
+
+/* ------------------------ AJOUT MANUEL INLINE ------------------------ */
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('new-manual-btn').addEventListener('click', () => {
+    const panel=document.getElementById('manual-inline');
+    panel.style.display = panel.style.display==='block' ? 'none' : 'block';
+  });
+
+  document.getElementById('manual-add-inline').addEventListener('click', () => {
+    const benef=document.getElementById('manual-benef-inline').value.trim();
+    const rib=document.getElementById('manual-rib-inline').value.trim();
+    const banque=document.getElementById('manual-banque-inline').value.trim();
+    const montant=parseFloat(document.getElementById('manual-montant-inline').value)||0;
+    if(!benef){ alert("Veuillez remplir le bénéficiaire"); return; }
+    if(!validateRIB(rib, document.getElementById('manual-rib-inline'))){ alert("RIB invalide : doit contenir exactement 20 chiffres"); return; }
+    if(ribExists(rib)){
+      const code = prompt("RIB " + rib + " déjà utilisé. Entrez le code secret pour autoriser le doublon :");
+      if (code !== SECRET_CODE) { alert("Ajout annulé (code incorrect)."); return; }
+    }
+    advances.push({beneficiaire:benef,rib:rib,banque:banque,montant:montant});
+    document.getElementById('manual-inline').style.display='none';
+    renderTable();
+  });
+
+  document.getElementById('manual-cancel-inline').addEventListener('click',()=>{
+    document.getElementById('manual-inline').style.display='none';
+  });
+});
+
+/* ------------------------ NOUVEAU BOUTON SUPPRIMER TOUT ------------------------ */
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('btnSupprimerTout').addEventListener('click', function() {
+    if (advances.length === 0) {
+      alert("La liste est déjà vide.");
+      return;
+    }
+    
+    if (confirm("Êtes-vous sûr de vouloir supprimer toutes les avances de la liste ? (" + advances.length + " éléments)")) {
+      advances = [];
+      renderTable();
+      alert("Toutes les avances ont été supprimées.");
+    }
+  });
+});
+
+/* ------------------------ RENDU TABLEAU ------------------------ */
+function renderTable(){
+  const tbody=document.querySelector('#advance-table tbody');
+  tbody.innerHTML="";
+  let total=0;
+  for(const a of advances){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><input type="text" value="${a.beneficiaire}" readonly></td>
+                  <td><input type="text" value="${a.banque}" readonly></td>
+                  <td><input type="text" value="${a.rib}" readonly></td>
+                  <td><input type="number" value="${a.montant}" step="0.001"></td>
+                  <td><button class="btn unlock">Modifier</button> <button class="btn delete">Supprimer</button></td>`;
+    tr.querySelector('.delete').addEventListener('click',()=>{advances=advances.filter(x=>x!==a);renderTable();});
+    tr.querySelector('.unlock').addEventListener('click',()=>{
+      const code=prompt("Entrez le code secret pour modifier :");
+      if(code===SECRET_CODE){
+        const inputs=tr.querySelectorAll('input');
+        inputs[0].removeAttribute('readonly');
+        inputs[1].removeAttribute('readonly');
+        inputs[2].removeAttribute('readonly');
+      } else {
+        alert("Code incorrect, modification refusée");
+      }
+    });
+    tr.querySelectorAll('input')[0].addEventListener('input', e=>{a.beneficiaire=e.target.value;});
+    tr.querySelectorAll('input')[1].addEventListener('input', e=>{a.banque=e.target.value;});
+    tr.querySelectorAll('input')[2].addEventListener('input', e=>{a.rib=e.target.value; if(!validateRIB(a.rib,e.target))return; if(ribExists(a.rib,a)){alert("RIB "+a.rib+" déjà utilisé !");e.target.classList.add("invalid");} else e.target.classList.remove("invalid");});
+    tr.querySelectorAll('input')[3].addEventListener('input', e=>{a.montant=parseFloat(e.target.value)||0;updateTotal();});
+    tbody.appendChild(tr);
+    total+=a.montant||0;
+  }
+  document.getElementById('total-amount').innerText=total.toFixed(3);
+}
+
+function updateTotal(){let total=advances.reduce((s,a)=>s+(a.montant||0),0);document.getElementById('total-amount').innerText=total.toFixed(3);}
+
+/* ------------------------ NOMBRES EN LETTRES ------------------------ */
+function numberToWords(n){
+  const unite=["","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
+  function conv1000(num){if(num===0) return "";let str="";if(num>99){const c=Math.floor(num/100);if(c>1) str+=unite[c]+" cent ";else str+="cent ";num=num%100;}if(num<17) str+=unite[num];else if(num<20) str+="dix-"+unite[num-10];else if(num<70){str+=unite[Math.floor(num/10)]+"ante";if(num%10>0) str+="-"+unite[num%10];}else if(num<80) str+="soixante-"+(num==71?"onze":unite[num-60]);else if(num<100){str+="quatre-vingt";if(num>80) str+="-"+unite[num-80];}return str.trim();}
+  if(n===0) return "zéro";let words="";let milliers=Math.floor(n/1000);let reste=n%1000;if(milliers>0) words+=(milliers>1?conv1000(milliers)+" mille ":"mille ");words+=conv1000(reste);return words.trim();
+}
+
+/* ------------------------ IMPRIMER ÉTAT (avec gestion code doublon) ------------------------ */
+function printEtat(){
+  if(advances.length===0){alert("Aucune avance sélectionnée");return;}
+  const seen = new Set();
+  for(const a of advances){
+    if(!validateRIB(a.rib)){ alert("RIB invalide détecté, impression annulée"); return; }
+    const normalized = (a.rib||"").toString().replace(/\D/g,'');
+    if(seen.has(normalized)){
+      const code = prompt("RIB " + a.rib + " déjà utilisé dans cette liste. Entrez le code secret pour autoriser le doublon à l'impression :");
+      if(code !== SECRET_CODE){
+        alert("Impression annulée (code incorrect pour doublon).");
+        return;
+      }
+    } else {
+      seen.add(normalized);
+    }
+  }
+
+  const [bankName,rib]=document.getElementById('bank-select').value.split('|');
+  document.getElementById('rib-bank').innerHTML=bankName+"<br>RIB : "+rib;
+  const date=document.getElementById('date-jour').value;
+  if(date) document.getElementById('date-impression').innerText="Grombalia, le "+date.split("-").reverse().join("/"); else document.getElementById('date-impression').innerText="";
+  const tbody=document.querySelector('#etat-table tbody');tbody.innerHTML="";
+  let total=0;
+  for(const a of advances){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${a.beneficiaire}</td><td>${a.rib}</td><td>${a.banque}</td><td class='amount'>${(a.montant||0).toFixed(3)}</td>`;
+    tbody.appendChild(tr);total+=a.montant||0;
+  }
+  document.getElementById('etat-total').innerText=total.toFixed(3);
+  const dinars=Math.floor(total);const millimes=Math.round((total-dinars)*1000);
+  let words=numberToWords(dinars)+" dinars";if(millimes>0) words+=" "+numberToWords(millimes)+" millimes";
+  document.getElementById('total-words').innerText="Arrêté le présent état à la somme de : "+words;
+  const css=document.querySelector('style').outerHTML;
+  const content=document.getElementById('print-section').innerHTML;
+  const w=window.open();
+  w.document.write('<html><head><title>Etat de Virement</title>'+css+'</head><body>'+content+'</body></html>');
+  w.document.close();w.print();
+}
+
+/* ------------------------ EXPORT TXT (BTK / ATB) avec vérif doublons ------------------------ */
+function exportTXT() {
+  if (advances.length === 0) {
+    alert("Aucune avance sélectionnée");
+    return;
+  }
+
+  const seen = new Set();
+  for (const a of advances) {
+    const normalized = (a.rib||"").toString().replace(/\D/g,'');
+    if(!validateRIB(a.rib)){
+      alert("RIB invalide détecté : " + a.rib + " — Export annulé.");
+      return;
+    }
+    if (seen.has(normalized)) {
+      const code = prompt("RIB " + a.rib + " déjà utilisé dans cette liste. Entrez le code secret pour autoriser le doublon à l'export :");
+      if (code !== SECRET_CODE) {
+        alert("Export annulé (code incorrect pour doublon).");
+        return;
+      }
+    } else {
+      seen.add(normalized);
+    }
+  }
+
+  const choix = prompt("Choisissez la banque pour l'export :\n1 = BTK\n2 = ATB");
+  if (!choix) return;
+
+  const date = document.getElementById('date-jour')?.value || new Date().toISOString().split("T")[0];
+  const yyyymmdd = date.replace(/-/g, "");
+  const year = date.split("-")[0];
+  const month = date.split("-")[1];
+
+  function padLeftLocal(s, len, ch = "0") {
+    s = String(s === null || s === undefined ? "" : s);
+    while (s.length < len) s = ch + s;
+    return s;
+  }
+
+  let content = "";
+  let fileName = "";
+
+  if (choix === "1") {
+    const bankRIB = "20023232219996530725";
+    const total = advances.reduce((s,a)=>s + (parseFloat(a.montant)||0), 0);
+    const totalMill = padLeftLocal(Math.round(total * 1000), 18);
+    const nbAvances = padLeftLocal(advances.length, 7);
+
+    content += `V1  ${bankRIB}${yyyymmdd}VIREMENT AVANCE     ${yyyymmdd}0000   ${nbAvances}   788TND${totalMill}`
+             + " ".repeat(140) + "\n";
+
+    let idx = 1;
+    for (const a of advances) {
+      const benefRib = (a.rib || "").padStart(20, "0");
+      const benefName = (a.beneficiaire || "").toString().slice(0,30).padEnd(30, " ");
+      const montantMill = padLeftLocal(Math.round((parseFloat(a.montant)||0) * 1000), 18);
+      const suffixNum = padLeftLocal(idx * 1000, 4);
+      const datePartPlus = yyyymmdd + "0000000000" + suffixNum;
+
+      content += `V2  ${bankRIB}${benefRib}${benefName}VIREMENT AVANCE     ${datePartPlus}`
+               + " ".repeat(100) + `${montantMill}` + "\n";
+      idx++;
+    }
+
+    fileName = "AVANCE_BTK.txt";
+  }
+  else if (choix === "2") {
+    const headerRIB_PART = "791100005861";
+    const total = advances.reduce((s,a)=>s + (parseFloat(a.montant)||0), 0);
+    const totalMill = padLeftLocal(Math.round(total * 1000), 12);
+    const nbAvances = padLeftLocal(advances.length, 3);
+
+    const motif = `Virement Avance Mois ${month} ${year}`.padEnd(70, " ");
+    content += `01${headerRIB_PART}${motif}${totalMill}${nbAvances}\n`;
+
+    let idx = 1;
+    for (const a of advances) {
+      let rib20 = String(a.rib || "").replace(/\D/g, "");
+      rib20 = padLeftLocal(rib20, 20);
+      const first2 = rib20.substring(0, 2);
+      const codeAgence = ("0" + first2).slice(-3);
+      const numLigne3 = padLeftLocal(idx, 3);
+      const ribWith1000 = "1000" + rib20;
+      const benefName = (a.beneficiaire || "").toString().slice(0,30).padEnd(30, " ");
+      const montantMill = padLeftLocal(Math.round((parseFloat(a.montant)||0) * 1000), 12);
+
+      content += `02${numLigne3}${codeAgence}  ${ribWith1000}${benefName}${montantMill}N\n`;
+      idx++;
+    }
+
+    fileName = "AVANCE_ATB.txt";
+  }
+  else {
+    alert("Choix invalide : tapez 1 pour BTK ou 2 pour ATB.");
+    return;
+  }
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
+
+<!-- ======= Ajout : script d'intégration Electron (ne remplace pas le code existant) ======= -->
+<script>
+/*
+  Ce script ajoute :
+  - utilisation de window.electronAPI.imprimerPage() si disponible (Electron),
+  - utilisation de window.api.saveTxt(filename, content) si disponible (Electron),
+  - sinon : comportement navigateur inchangé (onclick existants).
+  Aucune fonction existante n'est supprimée.
+*/
+document.addEventListener('DOMContentLoaded', function(){
+  // Imprimer : priorise Electron, sinon fallback sur printEtat()
+  const btnI = document.getElementById('btnImprimer');
+  if(btnI){
+    btnI.addEventListener('click', function(evt){
+      if(window.electronAPI && typeof window.electronAPI.imprimerPage === 'function'){
+        // utilise le main process pour imprimer (préférable en .exe)
+        try { window.electronAPI.imprimerPage(); }
+        catch(err){ console.error('imprimerPage error', err); printEtat(); }
+      } else {
+        // fallback navigateur / comportement existant
+        printEtat();
+      }
+      // Empêcher propagation double (onclick + listener)
+      evt.preventDefault(); evt.stopPropagation();
+    }, true);
+  }
+
+  // Export TXT : si Electron -> construire contenu et appeler saveTxt,
+  // sinon fallback sur la fonction exportTXT() existante (download blob)
+  const btnE = document.getElementById('btnExporter');
+  if(btnE){
+    btnE.addEventListener('click', function(evt){
+      if(window.api && typeof window.api.saveTxt === 'function'){
+        try{
+          if (advances.length === 0) { alert("Aucune avance sélectionnée"); return; }
+          const seen = new Set();
+          for (const a of advances) {
+            const normalized = (a.rib||"").toString().replace(/\D/g,'');
+            if(!validateRIB(a.rib)){ alert("RIB invalide détecté : " + a.rib + " — Export annulé."); return; }
+            if (seen.has(normalized)) {
+              const code = prompt("RIB " + a.rib + " déjà utilisé dans cette liste. Entrez le code secret pour autoriser le doublon à l'export :");
+              if (code !== SECRET_CODE) { alert("Export annulé (code incorrect pour doublon)."); return; }
+            } else { seen.add(normalized); }
+          }
+
+          const choix = prompt("Choisissez la banque pour l'export :\n1 = BTK\n2 = ATB");
+          if (!choix) return;
+
+          const date = document.getElementById('date-jour')?.value || new Date().toISOString().split("T")[0];
+          const yyyymmdd = date.replace(/-/g, "");
+          const year = date.split("-")[0];
+          const month = date.split("-")[1];
+
+          function padLeftLocal(s, len, ch = "0") {
+            s = String(s === null || s === undefined ? "" : s);
+            while (s.length < len) s = ch + s;
+            return s;
+          }
+
+          let content = "";
+          let fileName = "";
+
+          if (choix === "1") {
+            const bankRIB = "20023232219996530725";
+            const total = advances.reduce((s,a)=>s + (parseFloat(a.montant)||0), 0);
+            const totalMill = padLeftLocal(Math.round(total * 1000), 18);
+            const nbAvances = padLeftLocal(advances.length, 7);
+            content += `V1  ${bankRIB}${yyyymmdd}VIREMENT AVANCE     ${yyyymmdd}0000   ${nbAvances}   788TND${totalMill}` + " ".repeat(140) + "\n";
+            let idx = 1;
+            for (const a of advances) {
+              const benefRib = (a.rib || "").padStart(20, "0");
+              const benefName = (a.beneficiaire || "").toString().slice(0,30).padEnd(30, " ");
+              const montantMill = padLeftLocal(Math.round((parseFloat(a.montant)||0) * 1000), 18);
+              const suffixNum = padLeftLocal(idx * 1000, 4);
+              const datePartPlus = yyyymmdd + "0000000000" + suffixNum;
+              content += `V2  ${bankRIB}${benefRib}${benefName}VIREMENT AVANCE     ${datePartPlus}` + " ".repeat(100) + `${montantMill}` + "\n";
+              idx++;
+            }
+            fileName = "AVANCE_BTK.txt";
+          } else if (choix === "2") {
+            const headerRIB_PART = "791100005861";
+            const total = advances.reduce((s,a)=>s + (parseFloat(a.montant)||0), 0);
+            const totalMill = padLeftLocal(Math.round(total * 1000), 12);
+            const nbAvances = padLeftLocal(advances.length, 3);
+            const motif = `Virement Avance Mois ${month} ${year}`.padEnd(70, " ");
+            content += `01${headerRIB_PART}${motif}${totalMill}${nbAvances}\n`;
+            let idx = 1;
+            for (const a of advances) {
+              let rib20 = String(a.rib || "").replace(/\D/g, "");
+              rib20 = padLeftLocal(rib20, 20);
+              const first2 = rib20.substring(0, 2);
+              const codeAgence = ("0" + first2).slice(-3);
+              const numLigne3 = padLeftLocal(idx, 3);
+              const ribWith1000 = "1000" + rib20;
+              const benefName = (a.beneficiaire || "").toString().slice(0,30).padEnd(30, " ");
+              const montantMill = padLeftLocal(Math.round((parseFloat(a.montant)||0) * 1000), 12);
+              content += `02${numLigne3}${codeAgence}  ${ribWith1000}${benefName}${montantMill}N\n`;
+              idx++;
+            }
+            fileName = "AVANCE_ATB.txt";
+          } else {
+            alert("Choix invalide : tapez 1 pour BTK ou 2 pour ATB.");
+            return;
+          }
+
+          // appel à preload.js -> saveTxt (écrit dans Mes Documents)
+          const saved = window.api.saveTxt(fileName, content);
+          if(saved){
+            alert("Fichier TXT exporté dans : " + saved);
+          } else {
+            alert("Erreur lors de l'export (saveTxt a échoué).");
+          }
+        } catch(err){
+          console.error(err);
+          alert("Erreur lors de l'export (voir console).");
+        }
+      } else {
+        // fallback navigateur : comportement d'origine (download blob)
+        exportTXT();
+      }
+      evt.preventDefault(); evt.stopPropagation();
+    }, true);
+  }
+});
+</script>
+
+<!-- SheetJS (XLSX) pour lecture Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</body>
+</html>
