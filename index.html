@@ -13,10 +13,29 @@ body{font-family:"Times New Roman",serif;color:#2c3e50;margin:0;padding:0;backgr
 .header-right{text-align:right;font-size:12pt;white-space:nowrap;color:#2c3e50;}
 .table-container{width:100%;display:flex;justify-content:center;margin-top:10px;}
 .table{border-collapse:collapse;font-size:10pt;width:100%;margin:0 auto;}
-.table th,.table td{border:1.5px solid #bdc3c7;padding:6px;text-align:center;}
-.table th{font-weight:bold;font-size:10pt;background:#34495e;color:white;border:1.5px solid #2c3e50;}
-.table td{background:white;}
-.table tr:nth-child(even){background:#f8f9fa;}
+.table th, .table td {
+  border: 1.5px solid black;
+  padding: 6px;
+  text-align: center;
+  color: black;
+  background: white;
+}
+
+.table th {
+  font-weight: bold;
+  font-size: 10pt;
+  background: white;
+  color: black;
+  border: 1.5px solid black;
+}
+
+.table tr:nth-child(even) {
+  background: white; /* plus de gris clair */
+}
+
+.table td.amount {
+  text-align: right;
+}
 .table td.amount{text-align:right;}
 .footer{margin-top:20px;font-size:12pt;}
 .footer .words{margin-top:15px;}
@@ -174,12 +193,18 @@ select:focus{border-color:#3498db;outline:none;}
   <div class="table-container">
     <table class="table" id="etat-table">
       <thead>
-        <tr><th>Bénéficiaire</th><th>R.I.B</th><th>Banque</th><th>Net à Payer</th></tr>
+        <tr><th>Bénéficiaire</th><th>R.I.B</th><th>Banque</th><th>Montant</th></tr>
       </thead>
       <tbody></tbody>
-      <tfoot>
-        <tr><td colspan="3" style="text-align:right;font-weight:bold;background:#34495e;color:white;">Total Général</td><td id="etat-total" class="amount" style="font-weight:bold;background:#34495e;color:white;"></td></tr>
-      </tfoot>
+     <tfoot>
+  <tr>
+    <td colspan="3" style="text-align:right;font-weight:bold;background:white;color:black;border:1.5px solid black;">
+      Total Général
+    </td>
+    <td id="etat-total" class="amount" style="font-weight:bold;background:white;color:black;border:1.5px solid black;"></td>
+  </tr>
+</tfoot>
+
     </table>
   </div>
 
