@@ -155,6 +155,24 @@ select:focus{border-color:#3498db;outline:none;}
     <!-- Ajout d'ID tout en conservant onclick (aucune suppression) -->
     <button id="btnImprimer" onclick="printEtat()" class="btn btn-primary">Imprimer Etat de Virement</button>
     <button id="btnExporter" onclick="exportTXT()" class="btn btn-primary">Exporter TXT</button>
+<input type="file" id="txt-file" accept=".txt" style="display:none;">
+<button id="btnVerifierTXT" class="btn btn-danger">Vérifier Fichier TXT</button>
+
+<div id="txtResult" style="margin-top:15px; display:none; padding:10px; border:1px solid #ccc; border-radius:6px; background:#fff;">
+  <!-- Résultat affiché ici -->
+</div>
+
+<div id="txtDetails" style="display:none; margin-top:15px;">
+  <table id="txtTable" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
+    <thead>
+      <tr style="background:#eee;">
+        <th>#</th><th>Ligne</th><th>Nom</th><th>RIB</th><th>Montant</th><th>Remarque</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
     <!-- NOUVEAU BOUTON SUPPRIMER TOUT -->
     <button id="btnSupprimerTout" class="btn delete">Supprimer tout</button>
 
@@ -217,7 +235,7 @@ select:focus{border-color:#3498db;outline:none;}
 
 <script>
 /* ------------------------ GESTION DU MOT DE PASSE ------------------------ */
-const appPassword = "adminse123"; // Mot de passe par défaut
+const appPassword = "24473605"; // Mot de passe par défaut
 
 document.addEventListener('DOMContentLoaded', function() {
   const loginContainer = document.getElementById('login-container');
@@ -531,6 +549,11 @@ function handleExcelFileBase(file) {
       }
 
       renderTable();
+// Vérifier qu'aucun montant n'est nul
+if (!checkMontantsNonZero()) {
+  return;
+}
+
 
       let msg = `${added} avance(s) importée(s) depuis la base.`;
       if (skipped.length > 0) {
@@ -547,6 +570,11 @@ function handleExcelFileBase(file) {
 
 /* === IMPORT EXCEL MANUEL (Bénéficiaire/RIB/Montant) === */
 function handleExcelFileManuel(file) {
+// Vérifier qu'aucun montant n'est nul
+if (!checkMontantsNonZero()) {
+  return;
+}
+
   const reader = new FileReader();
   reader.onload = (evt) => {
     try {
@@ -942,9 +970,28 @@ function numberToWords(n){
   function conv1000(num){if(num===0) return "";let str="";if(num>99){const c=Math.floor(num/100);if(c>1) str+=unite[c]+" cent ";else str+="cent ";num=num%100;}if(num<17) str+=unite[num];else if(num<20) str+="dix-"+unite[num-10];else if(num<70){str+=unite[Math.floor(num/10)]+"ante";if(num%10>0) str+="-"+unite[num%10];}else if(num<80) str+="soixante-"+(num==71?"onze":unite[num-60]);else if(num<100){str+="quatre-vingt";if(num>80) str+="-"+unite[num-80];}return str.trim();}
   if(n===0) return "zéro";let words="";let milliers=Math.floor(n/1000);let reste=n%1000;if(milliers>0) words+=(milliers>1?conv1000(milliers)+" mille ":"mille ");words+=conv1000(reste);return words.trim();
 }
+// ------------------------ VERIFICATION DES MONTANTS ------------------------
+/**
+ * Vérifie qu'aucune avance n'a un montant égal à 0.
+ * Retourne true si tout est OK, false si on doit stopper (et affiche une alerte).
+ */
+function checkMontantsNonZero() {
+  const zeros = advances
+    .map((a, i) => ({i, benef: a.beneficiaire || "(sans nom)", rib: a.rib || "(sans RIB)", montant: parseFloat(a.montant) || 0}))
+    .filter(x => x.montant === 0);
+
+  if (zeros.length === 0) return true;
+
+  // Construire un message compact — limiter la liste si trop longue
+  const sample = zeros.slice(0, 5).map(z => `${z.benef} / ${z.rib}`).join(", ");
+  const more = zeros.length > 5 ? `, et ${zeros.length - 5} autre(s)` : "";
+  alert("Montant nul détecté (0). Opération stoppée.\nExemples: " + sample + more + "\nVérifiez les montants avant de continuer.");
+  return false;
+}
 
 /* ------------------------ IMPRIMER ÉTAT (avec gestion code doublon) ------------------------ */
-function printEtat(){
+function printEtat(){if (!checkMontantsNonZero()) return;
+
   if(advances.length===0){alert("Aucune avance sélectionnée");return;}
   const seen = new Set();
   for(const a of advances){
@@ -984,7 +1031,8 @@ function printEtat(){
 }
 
 /* ------------------------ EXPORT TXT (BTK / ATB) avec vérif doublons ------------------------ */
-function exportTXT() {
+function exportTXT() {if (!checkMontantsNonZero()) return;
+
   if (advances.length === 0) {
     alert("Aucune avance sélectionnée");
     return;
@@ -1088,6 +1136,93 @@ function exportTXT() {
   link.click();
   document.body.removeChild(link);
 }
+/* ------------------------ VERIFIER FICHIER TXT ------------------------ */
+document.addEventListener('DOMContentLoaded', function() {
+  const verifierBtn = document.getElementById("btnVerifierTXT");
+  const txtFileInput = document.getElementById("txt-file");
+  const resultBox = document.getElementById("txtResult");
+  const detailsBox = document.getElementById("txtDetails");
+  const tbody = document.querySelector("#txtTable tbody");
+
+  verifierBtn.addEventListener("click", () => {
+    txtFileInput.click();
+  });
+
+  txtFileInput.addEventListener("change", (e) => {
+    if (e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(evt) {
+      const lines = evt.target.result.split(/\r?\n/).filter(l => l.trim().length > 0);
+      tbody.innerHTML = "";
+      resultBox.style.display = "block";
+      detailsBox.style.display = "block";
+
+      if (lines.length === 0) {
+        resultBox.innerHTML = "<div style='color:red;font-weight:bold'>❌ Fichier TXT vide</div>";
+        detailsBox.style.display = "none";
+        return;
+      }
+
+      let total = 0;
+      let errors = [];
+
+      // Vérifier l'entête
+      if (!(lines[0].startsWith("01") || lines[0].startsWith("V1"))) {
+        errors.push("En-tête invalide (doit commencer par 01 ou V1)");
+      }
+
+      // Parcourir chaque ligne
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        let nom = line.slice(48,78).trim();
+        let rib = line.slice(16,38).trim();
+        let montantStr = line.slice(-13,-1).trim();
+        let montant = parseInt(montantStr,10);
+
+        let remark = [];
+        let hasError = false;
+
+        if (!nom) { remark.push("Nom manquant"); hasError = true; }
+        if (!rib || rib.length < 15) { remark.push("RIB invalide"); hasError = true; }
+        if (isNaN(montant) || montant <= 0) { remark.push("Montant nul/invalide"); hasError = true; }
+        else { total += montant; }
+
+        const tr = document.createElement("tr");
+        if (hasError) tr.style.background = "#fbe9e7"; // rouge clair
+
+        const tdIndex = document.createElement("td"); tdIndex.textContent = i;
+        const tdLine = document.createElement("td"); tdLine.textContent = line.slice(0,60)+"...";
+        const tdNom = document.createElement("td"); tdNom.textContent = nom || "-";
+        const tdRib = document.createElement("td"); tdRib.textContent = rib || "-";
+        const tdMontant = document.createElement("td"); tdMontant.textContent = isNaN(montant)? "-" : (montant/1000).toFixed(3)+" TND";
+        const tdRemarque = document.createElement("td"); tdRemarque.textContent = remark.length? remark.join(", ") : "OK";
+
+        tr.append(tdIndex,tdLine,tdNom,tdRib,tdMontant,tdRemarque);
+        tbody.appendChild(tr);
+
+        if (hasError) errors.push("Ligne "+(i+1)+": "+remark.join(", "));
+      }
+
+      // Résumé
+      let msg = "";
+      if (errors.length > 0) {
+        msg += "<div style='color:red;font-weight:bold'>❌ Erreurs détectées :</div><ul>";
+        errors.forEach(e => msg += "<li>"+e+"</li>");
+        msg += "</ul>";
+      } else {
+        msg += "<div style='color:green;font-weight:bold'>✅ Fichier TXT conforme</div>";
+      }
+      msg += "<p><strong>Total calculé :</strong> " + (total/1000).toFixed(3) + " TND</p>";
+
+      resultBox.innerHTML = msg;
+    };
+
+    reader.readAsText(file,"UTF-8");
+  });
+});
+
 </script>
 
 <!-- ======= Ajout : script d'intégration Electron (ne remplace pas le code existant) ======= -->
