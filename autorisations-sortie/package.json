@@ -1,0 +1,25 @@
+{
+  "name": "autorisations-sortie",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gestion numérique des autorisations de sortie des opérateurs (3x8) — chef d'équipe, RH, poste de garde",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "seed:demo": "node --disable-warning=ExperimentalWarning src/db/seed-demo.js",
+    "backup": "node --disable-warning=ExperimentalWarning src/db/backup-cli.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^5.2.1",
+    "jsqr": "^1.4.0",
+    "nodemailer": "^10.0.15",
+    "qrcode": "^1.5.4",
+    "web-push": "^3.6.7"
+  }
+}
