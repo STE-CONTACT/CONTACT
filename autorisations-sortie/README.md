@@ -59,7 +59,7 @@ Au premier démarrage sans données de démonstration, un compte `admin` est cr�
 - **Avec retour** : l'opérateur sort puis revient (heure de retour obligatoire). S'il dépasse l'heure prévue, il apparaît 🔴 en retard.
 - **Sans retour** : l'opérateur quitte son poste (ex. maladie). Aucune heure de retour n'est demandée. L'autorisation reste valable jusqu'à la fin de son poste. Le gardien enregistre une « Sortie sans retour », sans retour à confirmer ni alerte de retard.
 
-Le **scan du QR code** est facultatif et désactivé par défaut. L'administrateur peut l'activer dans *Paramètres* si la société équipe le poste de garde d'une tablette avec caméra.
+Le **badge QR** est facultatif. Il contient un lien vers l'application : le gardien le scanne avec **l'appareil photo de son téléphone** (connecté à l'application), et le résultat 🟢 / 🔴 s'affiche directement. Une douchette USB compatible QR fonctionne aussi dans la case matricule. Le bouton « Scanner » intégré à l'application (caméra de la tablette) s'active dans *Paramètres*.
 
 Statuts : `BROUILLON`, `EN ATTENTE` 🟡, `VALIDÉE` 🟢, `REFUSÉE` 🔴, `ANNULÉE`, `SORTIE EFFECTUÉE` 🔵, `RETOUR EFFECTUÉ`, `EXPIRÉE` ⚫. Un opérateur qui dépasse son heure de retour prévue apparaît en 🔴 **RETOUR EN RETARD**.
 

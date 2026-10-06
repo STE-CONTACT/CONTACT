@@ -519,11 +519,11 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     let methode = 'recherche';
     let saisie = String(q || '').trim();
     // Lecteur de codes-barres à main (« douchette ») : il tape le contenu du QR dans le champ matricule.
-    if (!qr && /^SORTIE\W/i.test(saisie)) qr = saisie;
+    if (!qr && (/^SORTIE\W/i.test(saisie) || /badge=/i.test(saisie))) qr = saisie;
     if (qr) {
       methode = 'qr';
       saisie = String(qr).trim();
-      const m = /^SORTIE\W([A-Za-z0-9-]+?)\W([A-Za-z0-9_-]+)$/i.exec(saisie);
+      const m = parseBadge(saisie);
       const e = m
         ? db.get('SELECT * FROM employees WHERE qr_token = ? AND matricule = ? COLLATE NOCASE', m[2], m[1])
         : db.get('SELECT * FROM employees WHERE matricule = ? COLLATE NOCASE', saisie);
@@ -779,6 +779,16 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     search, exportRows, outsideNow, dashboard, getForUser, getFull, timeline, chefTeamIds, canManageEmployee, attachmentPath,
     getRaw, forGuard, decorate, periodRange, STATUTS_ACTIFS,
   };
+}
+
+/**
+ * Contenu d'un badge QR : lien « …/#/garde?badge=MATRICULE.JETON » (scannable avec l'appareil photo
+ * de n'importe quel téléphone) ou ancien format « SORTIE:MATRICULE:JETON ».
+ */
+function parseBadge(text) {
+  let t = String(text || '').trim();
+  try { t = decodeURIComponent(t); } catch { /* texte brut */ }
+  return /badge=([A-Za-z0-9-]+)\.([A-Za-z0-9_-]+)/i.exec(t) || /SORTIE\W([A-Za-z0-9-]+?)\W([A-Za-z0-9_-]+)/i.exec(t);
 }
 
 function pick(o, keys) { const r = {}; for (const k of keys) r[k] = o[k]; return r; }

@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const os = require('node:os');
 const express = require('express');
 const QRCode = require('qrcode');
 const clock = require('../lib/clock');
@@ -46,6 +47,23 @@ module.exports = function adminRoutes(ctx) {
       return { deleted: false, deactivated: true, message: 'Élément lié à un historique : il a été désactivé au lieu d\'être supprimé.' };
     }
   }
+
+  /**
+   * Adresse de l'application vue depuis les téléphones. Réglable dans Paramètres ;
+   * sinon l'adresse utilisée par le navigateur, en remplaçant « localhost » par l'IP du PC sur le réseau.
+   */
+  function appAddress(req) {
+    const configured = String(settings.get('adresse_application') || '').trim().replace(/\/+$/, '');
+    if (configured) return configured;
+    let host = req.get('host') || 'localhost';
+    if (/^(localhost|127\.0\.0\.1|\[::1\])(:|$)/i.test(host)) {
+      const port = host.includes(':') ? host.slice(host.lastIndexOf(':')) : '';
+      const lan = Object.values(os.networkInterfaces()).flat().find((a) => a && a.family === 'IPv4' && !a.internal);
+      if (lan) host = `${lan.address}${port}`;
+    }
+    return `${req.protocol}://${host}`;
+  }
+  const badgeUrl = (req, matricule, token) => `${appAddress(req)}/#/garde?badge=${encodeURIComponent(matricule)}.${token}`;
 
   // ================================================================ UTILISATEURS
   const USER_SELECT = `SELECT u.*, t.nom AS equipe FROM users u LEFT JOIN teams t ON t.id = u.team_id`;
@@ -411,8 +429,13 @@ module.exports = function adminRoutes(ctx) {
   router.get('/employees/:id/qr.svg', staff, async (req, res) => {
     const e = getEmployeeChecked(req.user, Number(req.params.id));
     const raw = db.get('SELECT qr_token FROM employees WHERE id = ?', e.id);
-    const svg = await QRCode.toString(`SORTIE:${e.matricule}:${raw.qr_token}`, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+    const svg = await QRCode.toString(badgeUrl(req, e.matricule, raw.qr_token), { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
     res.type('image/svg+xml').set('Cache-Control', 'no-store').send(svg);
+  });
+
+  /** Adresse encodée dans les badges (pour vérifier que les téléphones peuvent l'ouvrir). */
+  router.get('/badge-address', staff, (req, res) => {
+    res.json({ adresse: appAddress(req) });
   });
 
   router.post('/employees/:id/regenerate-qr', admin, (req, res) => {

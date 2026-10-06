@@ -169,7 +169,9 @@ function qrModal(e) {
   return modal({
     title: `QR code — ${e.matricule}`,
     body: `<div class="center"><img src="/api/employees/${e.id}/qr.svg?t=${Date.now()}" alt="QR code" style="width:240px;height:240px"><h3>${esc(e.prenom)} ${esc(e.nom)}</h3><p class="mono">MAT. ${esc(e.matricule)}</p>
-      <p class="muted">Le QR code permet uniquement d'identifier l'opérateur au poste de garde. Il ne permet aucune modification.</p></div>`,
+      <p class="muted">Le QR code permet uniquement d'identifier l'opérateur au poste de garde. Il ne permet aucune modification.</p>
+      <p class="muted">Scannable avec l'appareil photo du téléphone du gardien (connecté à l'application). Adresse : <span class="mono" id="qr-addr"></span></p></div>`,
+    onOpen: (b) => { get('/api/badge-address').then((r) => { b.querySelector('#qr-addr').textContent = r.adresse; }).catch(() => {}); },
     actions: [
       { label: 'Régénérer (badge perdu)', class: 'btn-danger', onClick: async () => { if (!await confirmDialog('Régénérer le QR code', "L'ancien badge ne sera plus reconnu. Continuer ?", { danger: true })) return false; await post(`/api/employees/${e.id}/regenerate-qr`); toast('Nouveau QR code généré', 'success'); return true; } },
       { label: 'Imprimer', onClick: () => { window.print(); return false; } },
@@ -184,7 +186,11 @@ export async function renderMatricules(el) {
   el.innerHTML = `${pageHead('Matricules & QR codes', 'Badges QR à imprimer pour l\'identification rapide au poste de garde, et import des opérateurs.', `<button class="btn" data-import>${icon('upload')} Importer (CSV)</button>`)}
     <div class="card no-print"><div class="row"><select id="m-team" style="max-width:240px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select>
       <input type="search" id="m-q" placeholder="Matricule ou nom" style="max-width:260px"><button class="btn btn-primary" id="m-print">${icon('print')} Imprimer les badges</button></div></div>
+    <div class="info-box mb no-print" id="m-addr"></div>
     <div class="card"><div class="badges" id="m-body"></div></div>`;
+  get('/api/badge-address').then((r) => {
+    el.querySelector('#m-addr').innerHTML = `Les badges ouvrent l'application à l'adresse <strong class="mono">${esc(r.adresse)}</strong>. Le gardien scanne avec l'appareil photo de son téléphone (connecté au Wi-Fi de la société et à l'application) : le résultat 🟢 / 🔴 s'affiche directement. Si cette adresse n'est pas la bonne, corrigez-la dans <a href="#/admin/parametres">Paramètres</a> avant d'imprimer.`;
+  }).catch(() => {});
   const body = el.querySelector('#m-body');
   const f = { team_id: '', q: '' };
   const load = async () => {
@@ -342,6 +348,8 @@ export async function renderSettings(el) {
         <div class="field"><label>Nom de l'entreprise</label><input name="entreprise_nom" value="${esc(s.entreprise_nom)}"></div>
         <div class="field"><label>Fuseau horaire</label><select name="fuseau_horaire">${tzs.map((t) => `<option ${t === s.fuseau_horaire ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
           <div class="hint">Toutes les heures sont enregistrées en UTC et affichées dans ce fuseau.</div></div>
+        <div class="field"><label>Adresse de l'application (pour les badges QR)</label><input name="adresse_application" value="${esc(s.adresse_application)}" placeholder="Automatique — ex. http://192.168.1.10:3000">
+          <div class="hint">Adresse que les téléphones utilisent pour ouvrir l'application. Laisser vide = détectée automatiquement.</div></div>
         <div class="field"><label>Postes de garde (un par ligne)</label><textarea name="postes_garde" rows="3">${esc(s.postes_garde.join('\n'))}</textarea></div>
       </div>
       <div class="card"><h2>Horaires administratifs RH</h2>
@@ -386,7 +394,7 @@ export async function renderSettings(el) {
     const fd = new FormData(form);
     const num = (k) => Number(fd.get(k));
     const body = {
-      entreprise_nom: fd.get('entreprise_nom').trim(), fuseau_horaire: fd.get('fuseau_horaire'),
+      entreprise_nom: fd.get('entreprise_nom').trim(), fuseau_horaire: fd.get('fuseau_horaire'), adresse_application: fd.get('adresse_application').trim(),
       postes_garde: fd.get('postes_garde').split('\n').map((x) => x.trim()).filter(Boolean),
       rh_heure_debut: fd.get('rh_heure_debut'), rh_heure_fin: fd.get('rh_heure_fin'), rh_pause_debut: fd.get('rh_pause_debut'), rh_pause_fin: fd.get('rh_pause_fin'),
       tolerance_sortie_avant_min: num('tolerance_sortie_avant_min'), duree_max_heures: num('duree_max_heures'), delai_creation_max_jours: num('delai_creation_max_jours'),

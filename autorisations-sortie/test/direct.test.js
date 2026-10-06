@@ -89,3 +89,15 @@ test('Badge QR scanné plusieurs fois : une autorisation ne sert qu\'une seule f
   S.db.run("UPDATE employees SET qr_token = 'nouveauJeton' WHERE id = ?", S.ids.amine);
   assert.equal((await scan()).verdict, 'INCONNU');
 });
+
+test('Badge = lien ouvert par l\'appareil photo du téléphone (ou tapé par une douchette)', async () => {
+  at('2026-10-08', '09:00');
+  const emp = S.db.get('SELECT matricule, qr_token FROM employees WHERE id = ?', S.ids.ines);
+  const lien = `http://192.168.1.10:3000/#/garde?badge=${emp.matricule}.${emp.qr_token}`;
+  assert.equal((await gardien.get(`/api/gate/lookup?qr=${encodeURIComponent(`badge=${emp.matricule}.${emp.qr_token}`)}`)).data.employee.matricule, '4101');
+  assert.equal((await gardien.get(`/api/gate/lookup?q=${encodeURIComponent(lien)}`)).data.employee.matricule, '4101');
+  assert.equal((await gardien.get(`/api/gate/lookup?qr=${encodeURIComponent(`badge=${emp.matricule}.mauvais`)}`)).data.verdict, 'INCONNU');
+  const adr = await rh.get('/api/badge-address');
+  assert.match(adr.data.adresse, /^http:\/\//);
+  assert.doesNotMatch(adr.data.adresse, /localhost|127\.0\.0\.1/, 'les téléphones ne peuvent pas ouvrir « localhost »');
+});

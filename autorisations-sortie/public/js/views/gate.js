@@ -125,6 +125,12 @@ export async function renderMain(el) {
         ${b.outside.length ? b.outside.map((a) => row(a, 'return')).join('') : '<div class="g-empty">Personne dehors</div>'}`;
     } catch (e) { boardEl.innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
   };
+  // Badge scanné avec l'appareil photo du téléphone : le lien ouvre « #/garde?badge=… »
+  const badge = new URLSearchParams(location.hash.split('?')[1] || '').get('badge');
+  if (badge) {
+    history.replaceState(null, '', '#/garde');
+    lookup({ qr: `badge=${badge}` });
+  }
   await loadBoard();
   const off = on('authorization', debounce(loadBoard, 300));
   const timer = setInterval(loadBoard, 30000);
