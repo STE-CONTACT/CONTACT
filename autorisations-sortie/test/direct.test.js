@@ -65,3 +65,27 @@ test('Le RH télécharge le fichier Excel de suivi', async () => {
   const g = await fetch(`${S.base}/api/rapport.xlsx`, { headers: { Cookie: gardien.cookie() } });
   assert.equal(g.status, 403);
 });
+
+test('Badge QR scanné plusieurs fois : une autorisation ne sert qu\'une seule fois', async () => {
+  at('2026-10-07', '10:00');
+  const emp = S.db.get('SELECT matricule, qr_token FROM employees WHERE id = ?', S.ids.amine);
+  const badge = `SORTIE:${emp.matricule}:${emp.qr_token}`;
+  const scan = async () => (await gardien.get(`/api/gate/lookup?q=${encodeURIComponent(badge)}`)).data; // douchette = saisie clavier
+  assert.equal((await scan()).verdict, 'AUCUNE', 'pas d\'autorisation → rouge');
+  S.db.run('UPDATE users SET droit_toutes_equipes = 1 WHERE id = ?', S.ids.chefB);
+  const c = await chef.post('/api/authorizations', { employee_id: S.ids.amine, date_sortie: '2026-10-07', heure_sortie_prevue: '10:05', heure_retour_prevue: '11:00', type_sortie: 'PERSONNELLE', motif: 'Personnel' });
+  assert.equal(c.data.statut, 'VALIDEE');
+  const v1 = await scan();
+  assert.equal(v1.verdict, 'VALIDEE', 'vert');
+  assert.equal((await gardien.post(`/api/gate/${v1.authorization.id}/exit`, {})).status, 200);
+  // 2e scan : la personne est déjà dehors → aucune 2e sortie possible
+  assert.equal((await scan()).verdict, 'A_L_EXTERIEUR');
+  assert.equal((await gardien.post(`/api/gate/${c.data.id}/exit`, {})).status, 409);
+  at('2026-10-07', '10:40');
+  assert.equal((await gardien.post(`/api/gate/${c.data.id}/return`, {})).status, 200);
+  // Après le retour : l'autorisation est consommée → rouge
+  assert.equal((await scan()).verdict, 'AUCUNE');
+  // Faux badge (photo/copie d'un ancien code après régénération) → inconnu
+  S.db.run("UPDATE employees SET qr_token = 'nouveauJeton' WHERE id = ?", S.ids.amine);
+  assert.equal((await scan()).verdict, 'INCONNU');
+});

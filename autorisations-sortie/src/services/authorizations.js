@@ -518,10 +518,12 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     let employees = [];
     let methode = 'recherche';
     let saisie = String(q || '').trim();
+    // Lecteur de codes-barres à main (« douchette ») : il tape le contenu du QR dans le champ matricule.
+    if (!qr && /^SORTIE\W/i.test(saisie)) qr = saisie;
     if (qr) {
       methode = 'qr';
       saisie = String(qr).trim();
-      const m = /^SORTIE:([^:]+):([A-Za-z0-9_-]+)$/.exec(saisie);
+      const m = /^SORTIE\W([A-Za-z0-9-]+?)\W([A-Za-z0-9_-]+)$/i.exec(saisie);
       const e = m
         ? db.get('SELECT * FROM employees WHERE qr_token = ? AND matricule = ? COLLATE NOCASE', m[2], m[1])
         : db.get('SELECT * FROM employees WHERE matricule = ? COLLATE NOCASE', saisie);
