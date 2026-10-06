@@ -47,7 +47,13 @@ Au premier démarrage sans données de démonstration, un compte `admin` est cr�
 |---|---|
 | Chef d'équipe | **Nouvelle autorisation** → rechercher le matricule (ou le nom) → remplir → **Envoyer** |
 | RH | **Demandes en attente** → ouvrir → vérifier → **VALIDER / REFUSER** (motif obligatoire en cas de refus) |
-| Gardien | Saisir le matricule ou **SCANNER** le QR → 🟢 *AUTORISATION VALIDÉE* → **AUTORISER LA SORTIE** ; au retour → **CONFIRMER LE RETOUR** |
+| Gardien | Taper le matricule → 🟢 **AUTORISÉ** ou 🔴 **NON AUTORISÉ** → **VALIDER LA SORTIE** ; au retour → **RETOUR** |
+
+**Deux types d'autorisation** :
+- **Avec retour** : l'opérateur sort puis revient (heure de retour obligatoire). S'il dépasse l'heure prévue, il apparaît 🔴 en retard.
+- **Sans retour** : l'opérateur quitte son poste (ex. maladie). Aucune heure de retour n'est demandée. L'autorisation reste valable jusqu'à la fin de son poste. Le gardien enregistre une « Sortie sans retour », sans retour à confirmer ni alerte de retard.
+
+Le **scan du QR code** est facultatif et désactivé par défaut. L'administrateur peut l'activer dans *Paramètres* si la société équipe le poste de garde d'une tablette avec caméra.
 
 Statuts : `BROUILLON`, `EN ATTENTE` 🟡, `VALIDÉE` 🟢, `REFUSÉE` 🔴, `ANNULÉE`, `SORTIE EFFECTUÉE` 🔵, `RETOUR EFFECTUÉ`, `EXPIRÉE` ⚫. Un opérateur qui dépasse son heure de retour prévue apparaît en 🔴 **RETOUR EN RETARD**.
 

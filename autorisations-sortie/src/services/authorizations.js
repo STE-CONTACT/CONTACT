@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const clock = require('../lib/clock');
 const {
-  authorizationWindow, localDate, localTime, minutesBetween, formatDuration, isWithinShift, toMinutes, addDays, dayBoundsUtc,
+  authorizationWindow, noReturnWindow, localDate, localTime, minutesBetween, formatDuration, isWithinShift, toMinutes, addDays, dayBoundsUtc,
 } = require('../lib/time');
 const { badRequest, forbidden, notFound, conflict } = require('../lib/errors');
 const { TYPES_SORTIE, STATUTS, STATUTS_ACTIFS } = require('../lib/constants');
@@ -75,8 +75,12 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const now = clock.now();
     const a = { ...row };
     a.type_sortie_label = TYPES_SORTIE[a.type_sortie] || a.type_sortie;
-    a.retour_lendemain = toMinutes(a.heure_retour_prevue) < toMinutes(a.heure_sortie_prevue);
-    a.date_retour = a.retour_lendemain ? addDays(a.date_sortie, 1) : a.date_sortie;
+    a.avec_retour = a.avec_retour !== 0;
+    a.retour_lendemain = a.avec_retour && toMinutes(a.heure_retour_prevue) < toMinutes(a.heure_sortie_prevue);
+    a.date_retour = a.avec_retour ? (a.retour_lendemain ? addDays(a.date_sortie, 1) : a.date_sortie) : null;
+    // Sans retour : heure limite pour sortir (fin de poste), en heure locale
+    a.valable_jusqua = localTime(new Date(a.fin_at), tz());
+    a.valable_jusqua_date = localDate(new Date(a.fin_at), tz());
     a.en_retard = (a.statut === 'SORTIE_EFFECTUEE' && now > new Date(a.fin_at))
       || (a.statut === 'RETOUR_EFFECTUE' && a.heure_retour_reel && new Date(a.heure_retour_reel) > new Date(a.fin_at));
     if (a.heure_sortie_reelle) {
@@ -88,7 +92,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       a.retard_min = Math.max(0, minutesBetween(a.fin_at, now));
     }
     a.duree_prevue = formatDuration(minutesBetween(a.debut_at, a.fin_at));
-    if (a.poste_debut && a.poste_fin) {
+    if (a.poste_debut && a.poste_fin && a.avec_retour) {
       a.dans_poste = isWithinShift({ heure_debut: a.poste_debut, heure_fin: a.poste_fin }, new Date(a.debut_at), new Date(a.fin_at), tz());
     }
     // Information uniquement : les horaires RH ne bloquent jamais le traitement.
@@ -110,6 +114,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       matricule: a.matricule, emp_nom: a.emp_nom, emp_prenom: a.emp_prenom, emp_photo: a.emp_photo,
       service: a.service, equipe: a.equipe, poste_nom: a.poste_nom, poste_debut: a.poste_debut, poste_fin: a.poste_fin,
       date_sortie: a.date_sortie, date_retour: a.date_retour, retour_lendemain: a.retour_lendemain,
+      avec_retour: a.avec_retour, valable_jusqua: a.valable_jusqua, valable_jusqua_date: a.valable_jusqua_date,
       heure_sortie_prevue: a.heure_sortie_prevue, heure_retour_prevue: a.heure_retour_prevue,
       debut_at: a.debut_at, fin_at: a.fin_at, approved_at: a.approved_at,
       heure_sortie_reelle: a.heure_sortie_reelle, heure_retour_reel: a.heure_retour_reel,
@@ -143,7 +148,13 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const out = {};
     if (requireAll || input.date_sortie !== undefined) out.date_sortie = String(input.date_sortie || '');
     if (requireAll || input.heure_sortie_prevue !== undefined) out.heure_sortie_prevue = String(input.heure_sortie_prevue || '');
-    if (requireAll || input.heure_retour_prevue !== undefined) out.heure_retour_prevue = String(input.heure_retour_prevue || '');
+    if (requireAll || input.avec_retour !== undefined) out.avec_retour = input.avec_retour === false || input.avec_retour === 0 || input.avec_retour === '0' ? 0 : 1;
+    if (requireAll || input.heure_retour_prevue !== undefined || input.avec_retour !== undefined) {
+      out.heure_retour_prevue = out.avec_retour === 0 ? null : String(input.heure_retour_prevue || '');
+      if (out.avec_retour !== 0 && !out.heure_retour_prevue) {
+        throw badRequest("Indiquez l'heure de retour prévue, ou choisissez « Sans retour » si l'opérateur quitte son poste.");
+      }
+    }
     if (requireAll || input.type_sortie !== undefined) {
       if (!TYPES_SORTIE[input.type_sortie]) throw badRequest('Type de sortie invalide');
       out.type_sortie = input.type_sortie;
@@ -165,13 +176,21 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
   /** Contrôles de cohérence de la fenêtre horaire — aucun blocage lié aux horaires RH. */
   function checkWindow(employeeId, fields, excludeId = null) {
     let w;
+    const sansRetour = fields.avec_retour === 0;
     try {
-      w = authorizationWindow(fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue, tz());
+      if (sansRetour) {
+        const shift = db.get('SELECT sh.heure_debut, sh.heure_fin FROM employees e JOIN shifts sh ON sh.id = e.shift_id WHERE e.id = ?', employeeId);
+        w = noReturnWindow(fields.date_sortie, fields.heure_sortie_prevue, shift || null, tz());
+      } else {
+        w = authorizationWindow(fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue, tz());
+      }
     } catch (e) { throw badRequest(e.message); }
     const now = clock.now();
     const s = settings.all();
     if (w.fin <= now) {
-      throw badRequest("L'heure de retour prévue est déjà passée. Vérifiez la date (pour une sortie après minuit, choisissez la date du lendemain).");
+      throw badRequest(sansRetour
+        ? "L'heure de sortie est trop ancienne (le poste de l'opérateur est terminé). Vérifiez la date et l'heure."
+        : "L'heure de retour prévue est déjà passée. Vérifiez la date (pour une sortie après minuit, choisissez la date du lendemain).");
     }
     const dureeMin = minutesBetween(w.debut, w.fin);
     if (dureeMin > s.duree_max_heures * 60) throw badRequest(`Durée maximale dépassée (${s.duree_max_heures} h)`);
@@ -222,6 +241,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
 
   function fmtWindow(a) {
     const d = a.date_sortie.split('-').reverse().join('/');
+    if (!a.avec_retour) return `le ${d} à ${a.heure_sortie_prevue} — SANS RETOUR (valable jusqu'à ${a.valable_jusqua})`;
     return `le ${d} de ${a.heure_sortie_prevue} à ${a.heure_retour_prevue}${a.retour_lendemain ? ' (lendemain)' : ''}`;
   }
 
@@ -241,10 +261,10 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
 
     const id = db.tx(() => {
       const r = db.run(`INSERT INTO exit_authorizations
-        (employee_id, created_by, date_sortie, heure_sortie_prevue, heure_retour_prevue, debut_at, fin_at, type_sortie, motif, commentaire,
+        (employee_id, created_by, date_sortie, heure_sortie_prevue, heure_retour_prevue, avec_retour, debut_at, fin_at, type_sortie, motif, commentaire,
          piece_jointe, piece_jointe_nom, piece_jointe_type, statut, created_at, submitted_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      employeeId, user.id, fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue,
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      employeeId, user.id, fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue, fields.avec_retour,
       w.debut.toISOString(), w.fin.toISOString(), fields.type_sortie, fields.motif, fields.commentaire ?? null,
       attachment?.file ?? null, attachment?.nom ?? null, attachment?.type ?? null,
       submit ? 'EN_ATTENTE' : 'BROUILLON', now, submit ? now : null, now);
@@ -267,13 +287,13 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const a = getForUser(user, id);
     if (a.statut !== 'BROUILLON') throw conflict('Seul un brouillon peut être modifié');
     if (user.role !== 'admin' && a.created_by !== user.id) throw forbidden();
-    const fields = { ...pick(a, ['date_sortie', 'heure_sortie_prevue', 'heure_retour_prevue', 'type_sortie', 'motif', 'commentaire']), ...validateFields(input, { requireAll: false }) };
+    const fields = { ...pick(a, ['date_sortie', 'heure_sortie_prevue', 'heure_retour_prevue', 'type_sortie', 'motif', 'commentaire']), avec_retour: a.avec_retour ? 1 : 0, ...validateFields(input, { requireAll: false }) };
     const w = checkWindow(a.employee_id, fields, id);
     const attachment = input.piece_jointe ? saveAttachment(input.piece_jointe) : null;
     db.tx(() => {
-      db.run(`UPDATE exit_authorizations SET date_sortie=?, heure_sortie_prevue=?, heure_retour_prevue=?, debut_at=?, fin_at=?, type_sortie=?,
+      db.run(`UPDATE exit_authorizations SET date_sortie=?, heure_sortie_prevue=?, heure_retour_prevue=?, avec_retour=?, debut_at=?, fin_at=?, type_sortie=?,
         motif=?, commentaire=?, updated_at=? ${attachment ? ', piece_jointe=?, piece_jointe_nom=?, piece_jointe_type=?' : ''} WHERE id=? AND statut='BROUILLON'`,
-      fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue, w.debut.toISOString(), w.fin.toISOString(),
+      fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue, fields.avec_retour, w.debut.toISOString(), w.fin.toISOString(),
       fields.type_sortie, fields.motif, fields.commentaire ?? null, clock.nowIso(),
       ...(attachment ? [attachment.file, attachment.nom, attachment.type] : []), id);
       audit.log({ user, action: 'BROUILLON_MODIFIE', entityType: 'authorization', entityId: id, before: pick(a, Object.keys(fields)), after: fields, req });
@@ -285,7 +305,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const a = getForUser(user, id);
     if (a.statut !== 'BROUILLON') throw conflict("Cette demande n'est pas un brouillon");
     if (user.role !== 'admin' && a.created_by !== user.id) throw forbidden();
-    checkWindow(a.employee_id, a, id);
+    checkWindow(a.employee_id, { ...a, avec_retour: a.avec_retour ? 1 : 0 }, id);
     const now = clock.nowIso();
     db.tx(() => {
       const r = db.run("UPDATE exit_authorizations SET statut='EN_ATTENTE', submitted_at=?, updated_at=? WHERE id=? AND statut='BROUILLON'", now, now, id);
@@ -363,7 +383,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     if (!['chef', 'admin', 'rh'].includes(user.role)) throw forbidden();
     if (user.role === 'rh' && a.statut !== 'VALIDEE' && a.statut !== 'EN_ATTENTE') throw forbidden();
     if (!['BROUILLON', 'EN_ATTENTE', 'VALIDEE'].includes(a.statut)) {
-      throw conflict(a.statut === 'SORTIE_EFFECTUEE' || a.statut === 'RETOUR_EFFECTUE'
+      throw conflict(['SORTIE_EFFECTUEE', 'RETOUR_EFFECTUE', 'SORTIE_DEFINITIVE'].includes(a.statut)
         ? "Impossible d'annuler : l'autorisation a déjà été utilisée"
         : `Impossible d'annuler une demande au statut ${a.statut}`);
     }
@@ -418,6 +438,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
         ANNULEE: 'Autorisation ANNULÉE. Sortie interdite.',
         SORTIE_EFFECTUEE: 'La sortie a déjà été enregistrée.',
         RETOUR_EFFECTUE: 'Autorisation déjà utilisée.',
+        SORTIE_DEFINITIVE: 'Sortie sans retour déjà enregistrée : autorisation déjà utilisée.',
         BROUILLON: "Cette demande n'a pas été soumise. Sortie interdite.",
       }[a.statut] || 'Autorisation non valide.';
       throw conflict(msg);
@@ -430,14 +451,15 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     if (now >= new Date(a.fin_at)) throw conflict('Autorisation EXPIRÉE. Sortie interdite.');
     const poste = guardPoste(user, input.poste_garde);
     const iso = now.toISOString();
+    const newStatut = a.avec_retour ? 'SORTIE_EFFECTUEE' : 'SORTIE_DEFINITIVE';
     db.tx(() => {
-      const r = db.run("UPDATE exit_authorizations SET statut='SORTIE_EFFECTUEE', updated_at=? WHERE id=? AND statut='VALIDEE'", iso, id);
+      const r = db.run('UPDATE exit_authorizations SET statut=?, updated_at=? WHERE id=? AND statut=\'VALIDEE\'', newStatut, iso, id);
       if (!r.changes) throw conflict('La sortie a déjà été enregistrée');
       db.run(`INSERT INTO gate_movements (authorization_id, guard_id, poste_garde_sortie, heure_sortie_reelle, statut, created_at)
         VALUES (?,?,?,?, 'SORTI', ?)`, id, user.id, poste, iso, iso);
       audit.log({
         user, action: 'SORTIE_CONFIRMEE', entityType: 'authorization', entityId: id, before: { statut: 'VALIDEE' },
-        after: { statut: 'SORTIE_EFFECTUEE', heure_sortie_reelle: iso, heure_locale: localTime(now, tz()), date_locale: localDate(now, tz()), poste_garde: poste }, req,
+        after: { statut: newStatut, sans_retour: !a.avec_retour, heure_sortie_reelle: iso, heure_locale: localTime(now, tz()), date_locale: localDate(now, tz()), poste_garde: poste }, req,
       });
     });
     const full = getFull(id);
@@ -569,11 +591,13 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const { start } = dayBoundsUtc(localDate(now, tz()), tz());
     const since = new Date(Math.min(start.getTime(), now.getTime() - 12 * 3600000)).toISOString();
     const returns = db.all(`${AUTH_SELECT} WHERE a.statut = 'RETOUR_EFFECTUE' AND gm.heure_retour_reel >= ? ORDER BY gm.heure_retour_reel DESC LIMIT 100`, since);
+    const departs = db.all(`${AUTH_SELECT} WHERE a.statut = 'SORTIE_DEFINITIVE' AND gm.heure_sortie_reelle >= ? ORDER BY gm.heure_sortie_reelle DESC LIMIT 100`, since);
     return {
       now: nowIso,
       validated: validated.map((r) => forGuard(decorate(r))),
       outside: outside.map((r) => forGuard(decorate(r))),
       returns: returns.map((r) => forGuard(decorate(r))),
+      departs: departs.map((r) => forGuard(decorate(r))),
     };
   }
 
@@ -703,7 +727,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const last7 = [];
     for (let i = 6; i >= 0; i--) {
       const d = addDays(today, -i);
-      const r = db.get(`SELECT COUNT(*) AS n, SUM(CASE WHEN a.statut IN ('VALIDEE','SORTIE_EFFECTUEE','RETOUR_EFFECTUE') THEN 1 ELSE 0 END) AS ok,
+      const r = db.get(`SELECT COUNT(*) AS n, SUM(CASE WHEN a.statut IN ('VALIDEE','SORTIE_EFFECTUEE','RETOUR_EFFECTUE','SORTIE_DEFINITIVE') THEN 1 ELSE 0 END) AS ok,
         SUM(CASE WHEN a.statut = 'REFUSEE' THEN 1 ELSE 0 END) AS ko ${base} AND a.date_sortie = ?`, ...sc.params, d);
       last7.push({ date: d, total: r.n || 0, validees: r.ok || 0, refusees: r.ko || 0 });
     }
@@ -719,7 +743,8 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       aujourdhui: {
         total: totalToday,
         en_attente: counts.EN_ATTENTE,
-        validees: counts.VALIDEE + counts.SORTIE_EFFECTUEE + counts.RETOUR_EFFECTUE,
+        validees: counts.VALIDEE + counts.SORTIE_EFFECTUEE + counts.RETOUR_EFFECTUE + counts.SORTIE_DEFINITIVE,
+        sorties_sans_retour: counts.SORTIE_DEFINITIVE,
         refusees: counts.REFUSEE,
         annulees: counts.ANNULEE,
         expirees: counts.EXPIREE,

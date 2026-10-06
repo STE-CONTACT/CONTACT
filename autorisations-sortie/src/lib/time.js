@@ -99,6 +99,20 @@ function authorizationWindow(dateSortie, heureSortie, heureRetour, tz) {
 }
 
 /**
+ * Fenêtre de validité d'une sortie SANS RETOUR : de l'heure de sortie jusqu'à la fin du poste
+ * de l'opérateur (au moins 1 h). Sans poste connu ou hors poste : 4 h.
+ */
+function noReturnWindow(dateSortie, heureSortie, shift, tz) {
+  if (!isValidDate(dateSortie)) throw new Error('Date de sortie invalide');
+  if (!isValidTime(heureSortie)) throw new Error('Heure de sortie invalide (HH:MM)');
+  const debut = zonedToUtc(dateSortie, heureSortie, tz);
+  const w = shift ? shiftWindowAt(shift, debut, tz) : null;
+  const minFin = new Date(debut.getTime() + 60 * 60000);
+  const fin = w ? (w.end > minFin ? w.end : minFin) : new Date(debut.getTime() + 4 * 3600000);
+  return { debut, fin, finDePoste: Boolean(w) };
+}
+
+/**
  * Fenêtre réelle d'un poste (shift) contenant ou précédant un instant donné.
  * Gère les postes qui traversent minuit (23:00 → 07:00).
  */
@@ -138,6 +152,6 @@ function dayBoundsUtc(dateStr, tz) {
 
 module.exports = {
   isValidTimezone, isValidTime, isValidDate, zonedToUtc, zonedParts, localDate, localTime, addDays,
-  toMinutes, authorizationWindow, shiftWindowAt, isWithinShift, minutesBetween, formatDuration,
+  toMinutes, authorizationWindow, noReturnWindow, shiftWindowAt, isWithinShift, minutesBetween, formatDuration,
   dayBoundsUtc, tzOffsetMs,
 };

@@ -254,6 +254,36 @@ test('14. Recherche dans l\'historique plusieurs mois après', async () => {
 });
 
 // ------------------------------------------------------------------ règles métier & sécurité
+test('Sortie SANS RETOUR : valable jusqu\'à la fin du poste, jamais « en retard »', async () => {
+  at('2027-04-15', '09:00');
+  // Heure de retour manquante sans choisir « sans retour » → message clair
+  const miss = await createAuth(chefA, S.ids.ines, '2027-04-15', '10:00', '');
+  assert.equal(miss.status, 400);
+  assert.match(miss.data.error, /Sans retour/);
+  const c = await createAuth(chefA, S.ids.ines, '2027-04-15', '10:00', null, { avec_retour: false, motif: 'Maladie' });
+  assert.equal(c.status, 201, JSON.stringify(c.data));
+  assert.equal(c.data.avec_retour, false);
+  assert.equal(c.data.heure_retour_prevue, null);
+  assert.equal(c.data.fin_at, tunis('2027-04-15', '15:00'), 'valable jusqu\'à la fin du poste 1 (15:00)');
+  await rh.post(`/api/authorizations/${c.data.id}/approve`, {});
+  at('2027-04-15', '10:05');
+  const look = await gardien.get('/api/gate/lookup?q=4101');
+  assert.equal(look.data.verdict, 'VALIDEE');
+  assert.equal(look.data.authorization.avec_retour, false);
+  const e = await gardien.post(`/api/gate/${c.data.id}/exit`, {});
+  assert.equal(e.status, 200);
+  assert.equal(e.data.statut, 'SORTIE_DEFINITIVE');
+  // N'apparaît pas « dehors », pas de retour à confirmer, jamais en retard
+  at('2027-04-15', '18:00');
+  S.ctx.authz.expireDue();
+  assert.ok(!(await rh.get('/api/outside')).data.some((x) => x.id === c.data.id));
+  assert.equal((await gardien.post(`/api/gate/${c.data.id}/return`, {})).status, 409);
+  assert.equal((await gardien.get('/api/gate/lookup?q=4101')).data.verdict, 'AUCUNE');
+  const d = await rh.get(`/api/authorizations/${c.data.id}`);
+  assert.equal(d.data.statut, 'SORTIE_DEFINITIVE');
+  assert.equal(d.data.en_retard, false);
+});
+
 test('Règle 1 : un chef ne crée que pour son équipe (sauf droit spécial)', async () => {
   at('2027-04-15', '10:00');
   const r = await createAuth(chefA, S.ids.mohamed, '2027-04-15', '11:00', '12:00');

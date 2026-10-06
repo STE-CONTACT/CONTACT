@@ -73,6 +73,7 @@ function addEmployee(matricule, nom, prenom, team, shiftName, service) {
 }
 // Exemple du cahier des charges
 addEmployee('4587', 'BEN ALI', 'Mohamed', teamB, 'Poste 3', 'Production');
+addEmployee('4590', 'BEN SALEM', 'Mouna', teamB, 'Poste 3', 'Production');
 let mat = 4500;
 const teamDefs = [[teamA, 'Poste 1', 'Production'], [teamB, 'Poste 3', 'Production'], [teamC, 'Poste 2', 'Production'], [teamM, 'Poste 1', 'Maintenance']];
 for (let i = 0; i < 40; i++) {
@@ -156,15 +157,15 @@ for (let d = 120; d >= 1; d--) {
 clock.set(null);
 const nowMin = Math.floor((now - zonedToUtc(today, '00:00', tz)) / 60000);
 const emp4587 = employees[0];
-const others = employees.slice(1);
-function scenario(emp, chefId, startOffset, length, steps, type = 'PERSONNELLE') {
+const others = employees.slice(2);
+function scenario(emp, chefId, startOffset, length, steps, type = 'PERSONNELLE', avecRetour = true) {
   const chef = users[chefId];
   const s = nowMin + startOffset;
   const date = s >= 1440 ? addDays(today, 1) : s < 0 ? addDays(today, -1) : today;
   clock.set(new Date(now.getTime() + Math.min(startOffset - 30, -5) * 60000));
   const a = authz.create(chef, {
-    employee_id: emp.id, date_sortie: date, heure_sortie_prevue: hhmm(s), heure_retour_prevue: hhmm(s + length),
-    type_sortie: type, motif: pick(MOTIFS[type]), submit: true,
+    employee_id: emp.id, date_sortie: date, heure_sortie_prevue: hhmm(s), heure_retour_prevue: avecRetour ? hhmm(s + length) : null,
+    avec_retour: avecRetour, type_sortie: type, motif: avecRetour ? pick(MOTIFS[type]) : 'Maladie — quitte le poste', submit: true,
   }, fakeReq('10.0.0.21'));
   if (steps.includes('approve')) { clock.advance(4); authz.approve(users[rh1], a.id, {}, fakeReq('10.0.0.30')); }
   if (steps.includes('exit')) { clock.set(new Date(a.debut_at).getTime() + 2 * 60000); authz.confirmExit(users[g1], a.id, {}, fakeReq('10.0.0.50')); }
@@ -179,6 +180,7 @@ try {
   scenario(byTeam(teamC)[1], chefC, -40, 120, ['approve', 'exit']);       // à l'extérieur
   scenario(byTeam(teamM)[0], chefA, -150, 90, ['approve', 'exit']);       // à l'extérieur, retour en retard
   scenario(emp4587, chefB, 5, 85, ['approve']);                           // exemple du cahier des charges : MAT. 4587
+  scenario(employees[1], chefB, 10, 0, ['approve'], 'URGENCE', false);   // Mme Mouna : sortie SANS RETOUR
 } catch (e) { console.warn('Scénario du jour partiel :', e.message); }
 authz.expireDue();
 

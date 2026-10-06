@@ -7,7 +7,7 @@ const clock = require('../lib/clock');
 
 const STATUT_LABELS = {
   BROUILLON: 'Brouillon', EN_ATTENTE: 'En attente', VALIDEE: 'Validée', REFUSEE: 'Refusée', ANNULEE: 'Annulée',
-  SORTIE_EFFECTUEE: 'Sortie effectuée', RETOUR_EFFECTUE: 'Retour effectué', EXPIREE: 'Expirée',
+  SORTIE_EFFECTUEE: 'Sortie effectuée', RETOUR_EFFECTUE: 'Retour effectué', SORTIE_DEFINITIVE: 'Sortie sans retour', EXPIREE: 'Expirée',
 };
 
 module.exports = function authorizationRoutes(ctx) {
@@ -27,7 +27,7 @@ module.exports = function authorizationRoutes(ctx) {
       { label: 'Numéro', key: 'numero' }, { label: 'Matricule', key: 'matricule' }, { label: 'Nom', key: 'emp_nom' }, { label: 'Prénom', key: 'emp_prenom' },
       { label: 'Service', key: 'service' }, { label: 'Équipe', key: 'equipe' }, { label: 'Poste', key: 'poste_nom' },
       { label: 'Date sortie', value: (r) => r.date_sortie.split('-').reverse().join('/') },
-      { label: 'Sortie prévue', key: 'heure_sortie_prevue' }, { label: 'Retour prévu', value: (r) => `${r.heure_retour_prevue}${r.retour_lendemain ? ' (J+1)' : ''}` },
+      { label: 'Sortie prévue', key: 'heure_sortie_prevue' }, { label: 'Retour prévu', value: (r) => (r.avec_retour ? `${r.heure_retour_prevue}${r.retour_lendemain ? ' (J+1)' : ''}` : 'Sans retour') },
       { label: 'Type', key: 'type_sortie_label' }, { label: 'Motif', key: 'motif' }, { label: 'Statut', value: (r) => STATUT_LABELS[r.statut] },
       { label: "Chef d'équipe", key: 'createur' }, { label: 'Créée le', value: (r) => fmt(r.created_at) },
       { label: 'Validée/refusée par', value: (r) => r.valideur || r.refuseur || '' }, { label: 'Décision le', value: (r) => fmt(r.approved_at || r.rejected_at) },
@@ -87,7 +87,7 @@ module.exports = function authorizationRoutes(ctx) {
       FROM gate_checks c LEFT JOIN employees e ON e.id = c.employee_id LEFT JOIN users u ON u.id = c.guard_id
       LEFT JOIN exit_authorizations a ON a.id = c.authorization_id
       WHERE ${where.join(' AND ')} ORDER BY c.id DESC LIMIT 500`, ...params);
-    const mv = authz.search({ role: 'rh' }, { ...q, statut: 'SORTIE_EFFECTUEE,RETOUR_EFFECTUE', size: 200, periode: q.periode || (q.date_from || q.date_to ? undefined : 'aujourdhui') });
+    const mv = authz.search({ role: 'rh' }, { ...q, statut: 'SORTIE_EFFECTUEE,RETOUR_EFFECTUE,SORTIE_DEFINITIVE', size: 200, periode: q.periode || (q.date_from || q.date_to ? undefined : 'aujourdhui') });
     res.json({ checks: rows.map((r) => ({ ...r })), movements: mv.items.map(authz.forGuard), total_movements: mv.total });
   });
 

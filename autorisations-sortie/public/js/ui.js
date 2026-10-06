@@ -84,7 +84,7 @@ export const minutesSince = (iso) => Math.round((serverNow() - new Date(iso)) / 
 // ------------------------------------------------------------------ statuts
 export const STATUTS = {
   BROUILLON: 'Brouillon', EN_ATTENTE: 'En attente', VALIDEE: 'Validée', REFUSEE: 'Refusée', ANNULEE: 'Annulée',
-  SORTIE_EFFECTUEE: 'Sortie effectuée', RETOUR_EFFECTUE: 'Retour effectué', EXPIREE: 'Expirée',
+  SORTIE_EFFECTUEE: 'Sortie effectuée', RETOUR_EFFECTUE: 'Retour effectué', SORTIE_DEFINITIVE: 'Sortie sans retour', EXPIREE: 'Expirée',
 };
 export function statusBadge(statut, { large = false, a = null } = {}) {
   if (a && statut === 'SORTIE_EFFECTUEE' && a.en_retard) return `<span class="status st-RETARD ${large ? 'status-lg' : ''}">Retour en retard</span>`;
@@ -104,7 +104,8 @@ export function posteLabel(nom, debut, fin) {
 /** Créneau d'une autorisation : « 05/10 23:30 → 06/10 01:00 » */
 export function windowLabel(a, { withDate = true } = {}) {
   const d1 = withDate ? `${dmy(a.date_sortie).slice(0, 5)} ` : '';
-  const d2 = a.retour_lendemain ? `${dmy(a.date_retour).slice(0, 5)} ` : (withDate ? '' : '');
+  if (a.avec_retour === false) return `${d1}${esc(a.heure_sortie_prevue)} → sans retour`;
+  const d2 = a.retour_lendemain ? `${dmy(a.date_retour).slice(0, 5)} ` : '';
   return `${d1}${esc(a.heure_sortie_prevue)} → ${d2}${esc(a.heure_retour_prevue)}`;
 }
 

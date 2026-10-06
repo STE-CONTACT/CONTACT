@@ -83,9 +83,10 @@ CREATE TABLE IF NOT EXISTS exit_authorizations (
   cancelled_by         INTEGER REFERENCES users(id),
   date_sortie          TEXT NOT NULL,            -- date locale (YYYY-MM-DD) de la sortie prévue
   heure_sortie_prevue  TEXT NOT NULL,            -- HH:MM locale
-  heure_retour_prevue  TEXT NOT NULL,            -- HH:MM locale (peut être le lendemain)
+  heure_retour_prevue  TEXT,                     -- HH:MM locale (peut être le lendemain) ; NULL si sortie sans retour
+  avec_retour          INTEGER NOT NULL DEFAULT 1, -- 0 = sortie sans retour (l'opérateur quitte son poste)
   debut_at             TEXT NOT NULL,            -- instant UTC de début de validité
-  fin_at               TEXT NOT NULL,            -- instant UTC de fin de validité
+  fin_at               TEXT NOT NULL,            -- instant UTC de fin de validité (retour prévu, ou fin de poste si sans retour)
   type_sortie          TEXT NOT NULL CHECK (type_sortie IN ('PERSONNELLE','URGENCE','PROFESSIONNELLE','RENDEZ_VOUS','AUTRE')),
   motif                TEXT NOT NULL,
   commentaire          TEXT,
@@ -95,7 +96,7 @@ CREATE TABLE IF NOT EXISTS exit_authorizations (
   piece_jointe         TEXT,
   piece_jointe_nom     TEXT,
   piece_jointe_type    TEXT,
-  statut               TEXT NOT NULL CHECK (statut IN ('BROUILLON','EN_ATTENTE','VALIDEE','REFUSEE','ANNULEE','SORTIE_EFFECTUEE','RETOUR_EFFECTUE','EXPIREE')),
+  statut               TEXT NOT NULL CHECK (statut IN ('BROUILLON','EN_ATTENTE','VALIDEE','REFUSEE','ANNULEE','SORTIE_EFFECTUEE','RETOUR_EFFECTUE','SORTIE_DEFINITIVE','EXPIREE')),
   retard_notifie       INTEGER NOT NULL DEFAULT 0,
   created_at           TEXT NOT NULL,
   submitted_at         TEXT,

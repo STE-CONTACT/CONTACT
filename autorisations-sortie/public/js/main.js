@@ -63,26 +63,22 @@ const MENUS = {
     { path: '/admin/parametres', label: 'Paramètres', icon: 'settings' },
   ],
   chef: [
-    { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/nouvelle', label: 'Nouvelle autorisation', icon: 'plus' },
-    { path: '/mes-demandes', label: 'Mes demandes', icon: 'list' },
-    { path: '/equipe', label: 'Mon équipe', icon: 'team' },
-    { path: '/exterieur', label: "À l'extérieur", icon: 'exit' },
+    { path: '/mes-demandes', label: 'Mes demandes', icon: 'list', short: 'Demandes' },
+    { path: '/nouvelle', label: 'Nouvelle autorisation', icon: 'plus', short: 'Nouvelle', primary: true },
+    { path: '/equipe', label: 'Mon équipe', icon: 'team', short: 'Équipe' },
+    { path: '/exterieur', label: "À l'extérieur", icon: 'exit', short: 'Dehors' },
     { path: '/historique', label: 'Historique', icon: 'history' },
+    { path: '/dashboard', label: 'Statistiques', icon: 'dashboard' },
   ],
   rh: [
-    { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/en-attente', label: 'Demandes en attente', icon: 'hourglass', count: 'pending' },
+    { path: '/en-attente', label: 'À valider', icon: 'hourglass', count: 'pending' },
     { path: '/autorisations', label: 'Autorisations', icon: 'list' },
-    { path: '/exterieur', label: "À l'extérieur", icon: 'exit' },
+    { path: '/exterieur', label: "À l'extérieur", icon: 'exit', short: 'Dehors' },
     { path: '/historique', label: 'Historique', icon: 'history' },
-    { path: '/recherche', label: 'Recherche', icon: 'search' },
+    { path: '/dashboard', label: 'Statistiques', icon: 'dashboard' },
   ],
   gardien: [
-    { path: '/garde', label: 'Poste de garde' },
-    { path: '/garde/validees', label: 'Autorisations validées', count: 'validated' },
-    { path: '/garde/sorties', label: 'Sorties en cours', count: 'outside' },
-    { path: '/garde/retours', label: 'Retours' },
+    { path: '/garde', label: 'Contrôle' },
     { path: '/garde/historique', label: 'Historique' },
   ],
 };
@@ -98,7 +94,7 @@ function match(hash) {
   return null;
 }
 
-const defaultPath = () => (isRole('gardien') ? '/garde' : '/dashboard');
+const defaultPath = () => ({ gardien: '/garde', chef: '/mes-demandes', rh: '/en-attente' }[state.user.role] || '/dashboard');
 
 
 // ------------------------------------------------------------------ démarrage
@@ -110,7 +106,7 @@ async function boot() {
     const me = await get('/api/auth/me');
     setSession(me);
     startSession();
-  } catch (e) {
+  } catch {
     renderLogin();
   }
 }
@@ -221,7 +217,7 @@ function renderLayout() {
     app.innerHTML = `<div class="gate-layout">
       <header class="gate-header">
         <span class="title">${icon('gate', 'no')} POSTE DE GARDE</span>
-        <select id="poste-select" aria-label="Poste de garde">${state.settings.postes_garde.map((p) => `<option ${p === u.poste_garde ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>
+        <select id="poste-select" aria-label="Poste de garde" ${state.settings.postes_garde.length < 2 ? 'hidden' : ''}>${state.settings.postes_garde.map((p) => `<option ${p === u.poste_garde ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>
         <span class="clock" id="clock"></span>
         <a class="btn btn-ghost btn-icon bell" href="#/notifications" id="bell" aria-label="Notifications">${icon('bell')}<span class="badge hidden" id="bell-count"></span></a>
         <button class="btn btn-ghost" id="logout-btn">${icon('logout')} <span>${esc(u.prenom)}</span></button>
@@ -253,6 +249,7 @@ function renderLayout() {
         </header>
         <main class="content" id="view"></main>
       </div>
+      <nav class="bottom-nav" id="bottom-nav"></nav>
     </div>`;
     const sidebar = $('#sidebar'); const overlay = $('#overlay');
     const toggle = (open) => { sidebar.classList.toggle('open', open); overlay.classList.toggle('open', open); };
@@ -276,6 +273,11 @@ function renderNav() {
   if (state.user.role === 'gardien') {
     nav.innerHTML = items.map((i) => `<a href="#${i.path}" class="${current === i.path ? 'active' : ''}">${esc(i.label)}${i.count && counts[i.count] ? `<span class="count">${counts[i.count]}</span>` : ''}</a>`).join('');
     return;
+  }
+  const bottom = $('#bottom-nav');
+  if (bottom) {
+    const main = items.filter((i) => !i.section).slice(0, 4);
+    bottom.innerHTML = main.map((i) => `<a href="#${i.path}" class="${current === i.path ? 'active' : ''} ${i.primary ? 'primary' : ''}">${icon(i.icon)}<span>${esc(i.short || i.label)}</span>${i.count && counts[i.count] ? `<span class="count">${counts[i.count]}</span>` : ''}</a>`).join('');
   }
   nav.innerHTML = items.map((i) => (i.section
     ? `<div class="nav-section">${esc(i.section)}</div>`

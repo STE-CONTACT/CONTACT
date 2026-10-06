@@ -6,14 +6,6 @@ import {
   promptDialog, debounce, localDateStr, localTimeStr, addDays, toMin, duration, fileToBase64, pager, actionLabel, navigate,
 } from '../ui.js';
 
-const MOTIFS = {
-  PERSONNELLE: ['Démarche administrative', 'Raison familiale', 'Affaire personnelle'],
-  URGENCE: ['Urgence familiale', 'Urgence médicale', 'Urgence domicile'],
-  PROFESSIONNELLE: ['Livraison / fournisseur', 'Formation externe', 'Mission pour la société'],
-  RENDEZ_VOUS: ['Rendez-vous médical', 'Rendez-vous administratif', 'Rendez-vous banque'],
-  AUTRE: [],
-};
-
 // ================================================================== NOUVELLE AUTORISATION
 export async function renderNew(el) {
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
@@ -24,14 +16,10 @@ export async function renderNew(el) {
   if (employee) renderForm(el, employee); else renderStep1(el);
 }
 
-function steps(n) {
-  return `<div class="steps"><div class="s ${n === 1 ? 'active' : 'done'}">1. Opérateur</div><div class="s ${n === 2 ? 'active' : ''}">2. Autorisation</div><div class="s">3. Envoi au RH</div></div>`;
-}
-
 function renderStep1(el) {
-  el.innerHTML = `${steps(1)}
+  el.innerHTML = `
     <div class="card">
-      <div class="field"><label for="emp-q">Rechercher un opérateur — matricule, nom ou prénom</label>
+      <div class="field"><label for="emp-q">Qui sort ? Matricule ou nom</label>
         <input id="emp-q" type="search" placeholder="Ex. 4587 ou BEN ALI" autocomplete="off" autofocus></div>
       <div id="emp-results" class="result-list"></div>
     </div>`;
@@ -75,107 +63,114 @@ function roundedNow(addMin = 0) {
   return { time: `${String(Math.floor(r / 60) % 24).padStart(2, '0')}:${String(r % 60).padStart(2, '0')}`, nextDay: r >= 1440 };
 }
 
+const MOTIF_CHIPS = [
+  { label: 'Personnel', type: 'PERSONNELLE' },
+  { label: 'Rendez-vous médical', type: 'RENDEZ_VOUS' },
+  { label: 'Maladie', type: 'URGENCE' },
+  { label: 'Urgence familiale', type: 'URGENCE' },
+  { label: 'Mission professionnelle', type: 'PROFESSIONNELLE' },
+  { label: 'Autre', type: 'AUTRE' },
+];
+
 function renderForm(el, emp) {
   const s = state.settings;
   const start = roundedNow(5);
   const end = roundedNow(65);
   const today = localDateStr();
   let type = 'PERSONNELLE';
-  el.innerHTML = `${steps(2)}
-    <div class="card"><div class="card-head"><h2>Opérateur</h2><button class="btn btn-sm" data-change>Changer</button></div>${employeeCard(emp)}</div>
+  let avecRetour = true;
+  el.innerHTML = `
+    <div class="card f-emp">${avatar(emp.id, emp.photo, emp.prenom, emp.nom)}
+      <div class="grow"><div class="name"><span class="mat">${esc(emp.matricule)}</span> ${esc(emp.prenom)} ${esc(emp.nom)}</div>
+      <div class="meta">${esc(emp.equipe || '')} · ${posteLabel(emp.poste_nom, emp.poste_debut, emp.poste_fin)}</div></div>
+      <button class="btn btn-sm" data-change type="button">Changer</button></div>
     <form class="card" id="auth-form" novalidate>
-      <h2>Autorisation de sortie</h2>
-      <div class="form-grid">
-        <div class="field"><label for="f-date">Date de sortie</label><input id="f-date" type="date" value="${start.nextDay ? addDays(today, 1) : today}" required></div>
-        <div class="field"><label for="f-hs">Heure de sortie prévue</label><input id="f-hs" type="time" value="${start.time}" required></div>
-        <div class="field"><label for="f-hr">Heure de retour prévue</label><input id="f-hr" type="time" value="${end.time}" required></div>
+      <label>L'opérateur revient-il ?</label>
+      <div class="f-choice" id="retour-choice">
+        <button type="button" data-r="1" class="active">↩ AVEC RETOUR<small>sort puis revient</small></button>
+        <button type="button" data-r="0">✖ SANS RETOUR<small>quitte son poste</small></button>
       </div>
-      <div class="field"><div id="preview"></div></div>
-      <div class="field"><label>Type de sortie</label><div class="segmented" id="types">${Object.entries(s.types_sortie).map(([k, v]) => `<button type="button" data-type="${k}" class="${k === type ? 'active' : ''}">${esc(v)}</button>`).join('')}</div></div>
-      <div class="field"><label for="f-motif">Motif <span class="muted">(obligatoire)</span></label>
-        <input id="f-motif" type="text" maxlength="500" required placeholder="Motif de la sortie">
-        <div class="chips mt" id="motifs"></div></div>
-      <div class="field"><label for="f-comment">Commentaire <span class="muted">(facultatif)</span></label><textarea id="f-comment" maxlength="1000" rows="2"></textarea></div>
-      ${s.pieces_jointes_actives ? `<div class="field"><label for="f-file">Pièce jointe <span class="muted">(facultatif — PDF ou photo, 5 Mo max.)</span></label><input id="f-file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></div>` : ''}
-      <div class="row mt" style="justify-content:flex-end">
-        <button type="button" class="btn" data-draft>Enregistrer en brouillon</button>
-        <button type="submit" class="btn btn-primary btn-lg">${icon('check')} Envoyer la demande</button>
+      <div class="f-times">
+        <div class="field"><label for="f-hs">Heure de sortie</label><input id="f-hs" type="time" value="${start.time}" required></div>
+        <div class="field" id="f-hr-field"><label for="f-hr">Heure de retour</label><input id="f-hr" type="time" value="${end.time}" required></div>
       </div>
+      <div id="preview" class="mb"></div>
+      <label>Motif</label>
+      <div class="chips f-motifs" id="motifs">${MOTIF_CHIPS.map((m, i) => `<button type="button" class="chip" data-i="${i}">${esc(m.label)}</button>`).join('')}</div>
+      <div class="field mt"><input id="f-motif" type="text" maxlength="500" placeholder="Motif (choisir ci-dessus ou écrire)"></div>
+      <details class="mb"><summary class="muted" style="cursor:pointer">Plus d'options (date, commentaire${s.pieces_jointes_actives ? ', pièce jointe' : ''})</summary>
+        <div class="field mt"><label for="f-date">Date de sortie</label><input id="f-date" type="date" value="${start.nextDay ? addDays(today, 1) : today}"></div>
+        <div class="field"><label for="f-comment">Commentaire</label><textarea id="f-comment" maxlength="1000" rows="2"></textarea></div>
+        ${s.pieces_jointes_actives ? '<div class="field"><label for="f-file">Pièce jointe (PDF ou photo, 5 Mo max.)</label><input id="f-file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></div>' : ''}
+      </details>
+      <button type="submit" class="btn btn-primary btn-lg btn-block">${icon('check')} ENVOYER AU RH</button>
     </form>`;
   const f = (id) => el.querySelector(id);
-  const renderMotifs = () => {
-    f('#motifs').innerHTML = (MOTIFS[type] || []).map((m) => `<button type="button" class="chip" data-m="${esc(m)}">${esc(m)}</button>`).join('');
-  };
-  renderMotifs();
   let adjusted = false;
+  const fmtDay = (d) => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
   const preview = () => {
     const date = f('#f-date').value; const hs = f('#f-hs').value; const hr = f('#f-hr').value;
-    if (!date || !hs || !hr) { f('#preview').innerHTML = ''; return; }
-    if (hs === hr) { f('#preview').innerHTML = '<div class="error-box">L\'heure de retour doit être différente de l\'heure de sortie.</div>'; return; }
-    const nextDay = toMin(hr) < toMin(hs);
-    // Sortie après minuit saisie le soir : si le créneau du jour est déjà passé, on propose le lendemain.
+    if (!date || !hs || (avecRetour && !hr)) { f('#preview').innerHTML = ''; return; }
     const nowDate = localDateStr(); const nowMin = toMin(localTimeStr());
-    const endPassed = date === nowDate && !nextDay && toMin(hr) <= nowMin;
-    if (endPassed && !adjusted && nowMin - toMin(hs) > 120) {
-      f('#f-date').value = addDays(nowDate, 1); adjusted = true; preview(); return;
+    // Sortie après minuit saisie le soir : le créneau du jour est passé → lendemain automatiquement.
+    if (!adjusted && date === nowDate && nowMin - toMin(hs) > 120) { f('#f-date').value = addDays(nowDate, 1); adjusted = true; preview(); return; }
+    const warn = [];
+    if (adjusted) warn.push(`Date mise au lendemain (${dmy(f('#f-date').value)}) : sortie après minuit.`);
+    let line;
+    if (!avecRetour) {
+      line = `<strong>${esc(fmtDay(date))} à ${esc(hs)}</strong> — ne revient pas${emp.poste_fin ? ` (valable jusqu'à la fin du poste, ${esc(emp.poste_fin)})` : ''}`;
+    } else {
+      if (hs === hr) { f('#preview').innerHTML = '<div class="error-box">Le retour doit être différent de la sortie.</div>'; return; }
+      const nextDay = toMin(hr) < toMin(hs);
+      const dur = nextDay ? 1440 - toMin(hs) + toMin(hr) : toMin(hr) - toMin(hs);
+      if (dur > s.duree_max_heures * 60) warn.push(`Durée supérieure au maximum (${s.duree_max_heures} h).`);
+      line = `<strong>${esc(fmtDay(date))} ${esc(hs)} → ${nextDay ? `${esc(fmtDay(addDays(date, 1)))} ` : ''}${esc(hr)}</strong> · ${duration(dur)}`;
     }
-    const dur = nextDay ? 1440 - toMin(hs) + toMin(hr) : toMin(hr) - toMin(hs);
-    const dateRetour = nextDay ? addDays(date, 1) : date;
-    const fmtDay = (d) => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
-    const warnings = [];
-    if (adjusted) warnings.push(`Date positionnée au lendemain (${dmy(f('#f-date').value)}) car la sortie est prévue après minuit.`);
-    if (dur > s.duree_max_heures * 60) warnings.push(`Durée supérieure au maximum autorisé (${s.duree_max_heures} h).`);
-    if (date === nowDate && !nextDay && toMin(hr) <= nowMin) warnings.push('Le retour prévu est déjà passé : vérifiez la date.');
-    if (emp.poste_debut && emp.poste_fin && !withinShift(emp.poste_debut, emp.poste_fin, hs, dur)) warnings.push(`Information : ce créneau dépasse le poste de l'opérateur (${emp.poste_debut}–${emp.poste_fin}). La demande reste possible.`);
-    f('#preview').innerHTML = `<div class="window-preview"><div><div class="muted">Sortie</div><div class="big">${esc(fmtDay(date))} ${esc(hs)}</div></div>
-      <div class="big">→</div><div><div class="muted">Retour</div><div class="big">${esc(fmtDay(dateRetour))} ${esc(hr)}</div></div>
-      <div><div class="muted">Durée</div><div class="big">${duration(dur)}</div></div></div>
-      ${warnings.map((w) => `<div class="warn-box mt">${esc(w)}</div>`).join('')}`;
+    f('#preview').innerHTML = `<div class="info-box">${line}</div>${warn.map((w) => `<div class="warn-box mt">${esc(w)}</div>`).join('')}`;
   };
-  ['#f-date', '#f-hs', '#f-hr'].forEach((id) => f(id).addEventListener('change', () => { if (id === '#f-date') adjusted = false; preview(); }));
-  ['#f-hs', '#f-hr'].forEach((id) => f(id).addEventListener('input', preview));
+  ['#f-date', '#f-hs', '#f-hr'].forEach((id) => { f(id).addEventListener('change', () => { if (id === '#f-date') adjusted = true; preview(); }); f(id).addEventListener('input', preview); });
   preview();
-  f('#types').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-type]'); if (!b) return;
-    type = b.dataset.type;
-    f('#types').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
-    renderMotifs();
+  f('#retour-choice').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-r]'); if (!b) return;
+    avecRetour = b.dataset.r === '1';
+    f('#retour-choice').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+    f('#f-hr-field').hidden = !avecRetour;
+    preview();
   });
-  f('#motifs').addEventListener('click', (e) => { const c = e.target.closest('[data-m]'); if (c) { f('#f-motif').value = c.dataset.m; } });
+  f('#motifs').addEventListener('click', (e) => {
+    const c = e.target.closest('[data-i]'); if (!c) return;
+    const m = MOTIF_CHIPS[Number(c.dataset.i)];
+    type = m.type;
+    f('#motifs').querySelectorAll('.chip').forEach((x) => x.classList.toggle('active', x === c));
+    f('#f-motif').value = m.type === 'AUTRE' ? '' : m.label;
+    if (m.type === 'AUTRE') f('#f-motif').focus();
+  });
   el.querySelector('[data-change]').addEventListener('click', () => renderStep1(el));
 
-  const send = async (submit) => {
+  f('#auth-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
     const motif = f('#f-motif').value.trim();
-    if (!motif) { toast('Le motif est obligatoire', 'warning'); f('#f-motif').focus(); return; }
+    if (!motif) { toast('Choisissez ou écrivez le motif', 'warning'); f('#f-motif').focus(); return; }
     const body = {
-      employee_id: emp.id, date_sortie: f('#f-date').value, heure_sortie_prevue: f('#f-hs').value, heure_retour_prevue: f('#f-hr').value,
-      type_sortie: type, motif, commentaire: f('#f-comment').value, submit,
+      employee_id: emp.id, date_sortie: f('#f-date').value, heure_sortie_prevue: f('#f-hs').value,
+      avec_retour: avecRetour, heure_retour_prevue: avecRetour ? f('#f-hr').value : null,
+      type_sortie: type, motif, commentaire: f('#f-comment').value, submit: true,
     };
     const file = f('#f-file') && f('#f-file').files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { toast('Pièce jointe trop volumineuse (5 Mo max.)', 'warning'); return; }
       body.piece_jointe = { name: file.name, type: file.type, data: await fileToBase64(file) };
     }
-    const buttons = el.querySelectorAll('button');
-    buttons.forEach((b) => { b.disabled = true; });
+    const btn = f('#auth-form').querySelector('[type=submit]');
+    btn.disabled = true;
     try {
       const a = await post('/api/authorizations', body);
-      toast(submit ? `Demande ${a.numero} envoyée au RH` : `Brouillon ${a.numero} enregistré`, 'success');
-      navigate(`/autorisations/${a.id}`);
-    } catch (e) { toastError(e); buttons.forEach((b) => { b.disabled = false; }); }
-  };
-  f('#auth-form').addEventListener('submit', (e) => { e.preventDefault(); send(true); });
-  el.querySelector('[data-draft]').addEventListener('click', () => send(false));
-  setTimeout(() => f('#f-motif').focus(), 50);
+      toast(`Demande envoyée au RH (${a.numero})`, 'success');
+      navigate('/mes-demandes');
+    } catch (err) { toastError(err); btn.disabled = false; }
+  });
 }
 
-/** Vérifie (à titre indicatif) si un créneau tient dans le poste de l'opérateur, y compris les postes de nuit. */
-function withinShift(pd, pf, hs, dur) {
-  const start = toMin(pd); let end = toMin(pf); if (end <= start) end += 1440;
-  let s = toMin(hs);
-  if (s < start && s + 1440 < end) s += 1440;
-  return s >= start && s + dur <= end;
-}
 
 // ================================================================== DÉCISION RAPIDE (RH)
 export async function quickDecision(id, kind) {
@@ -204,7 +199,7 @@ export async function quickDecision(id, kind) {
 
 // ================================================================== LISTES
 const STATUS_FILTERS = [
-  ['', 'Tous'], ['EN_ATTENTE', 'En attente'], ['VALIDEE', 'Validées'], ['SORTIE_EFFECTUEE', 'Sortis'], ['RETOUR_EFFECTUE', 'Rentrés'],
+  ['', 'Tous'], ['EN_ATTENTE', 'En attente'], ['VALIDEE', 'Validées'], ['SORTIE_EFFECTUEE', 'Dehors'], ['RETOUR_EFFECTUE', 'Rentrés'], ['SORTIE_DEFINITIVE', 'Sans retour'],
   ['REFUSEE', 'Refusées'], ['EXPIREE', 'Expirées'], ['ANNULEE', 'Annulées'], ['BROUILLON', 'Brouillons'],
 ];
 
@@ -289,8 +284,8 @@ export async function renderDetail(el, id) {
             <div class="kv">
               <div><span>Date</span><strong>${esc(dmy(a.date_sortie))}</strong></div>
               <div><span>Sortie prévue</span><strong>${esc(a.heure_sortie_prevue)}</strong></div>
-              <div><span>Retour prévu</span><strong>${esc(a.heure_retour_prevue)}${a.retour_lendemain ? ` <span class="tag">le ${esc(dmy(a.date_retour))}</span>` : ''}</strong></div>
-              <div><span>Durée prévue</span><strong>${esc(a.duree_prevue)}</strong></div>
+              <div><span>Retour prévu</span><strong>${a.avec_retour ? `${esc(a.heure_retour_prevue)}${a.retour_lendemain ? ` <span class="tag">le ${esc(dmy(a.date_retour))}</span>` : ''}` : '<span class="status st-SORTIE_DEFINITIVE">Sans retour</span>'}</strong></div>
+              ${a.avec_retour ? `<div><span>Durée prévue</span><strong>${esc(a.duree_prevue)}</strong></div>` : ''}
               <div><span>Type</span><strong>${esc(a.type_sortie_label)}</strong></div>
               <div><span>Valable jusqu'au</span><strong>${fmtDateTime(a.fin_at)}</strong></div>
             </div>
@@ -312,9 +307,9 @@ export async function renderDetail(el, id) {
               <div><span>Sortie réelle</span><strong>${fmtDateTime(a.heure_sortie_reelle)}</strong></div>
               <div><span>Gardien</span><strong>${esc(a.gardien_sortie)}</strong></div>
               <div><span>Poste de garde</span><strong>${esc(a.poste_garde_sortie || '')}</strong></div>
-              <div><span>Retour réel</span><strong>${a.heure_retour_reel ? fmtDateTime(a.heure_retour_reel) : '<span class="status st-EXTERIEUR">À l\'extérieur</span>'}</strong></div>
+              ${a.avec_retour ? `<div><span>Retour réel</span><strong>${a.heure_retour_reel ? fmtDateTime(a.heure_retour_reel) : '<span class="status st-EXTERIEUR">À l\'extérieur</span>'}</strong></div>` : '<div><span>Retour</span><strong>Sans retour</strong></div>'}
               ${a.heure_retour_reel ? `<div><span>Gardien (retour)</span><strong>${esc(a.gardien_retour)}</strong></div><div><span>Poste (retour)</span><strong>${esc(a.poste_garde_retour || '')}</strong></div>` : ''}
-              <div><span>Durée réelle</span><strong>${esc(a.duree_reelle)}${a.en_retard ? ' <span class="tag tag-red">retard</span>' : ''}</strong></div>
+              <div ${a.avec_retour ? '' : 'hidden'}><span>Durée réelle</span><strong>${esc(a.duree_reelle)}${a.en_retard ? ' <span class="tag tag-red">retard</span>' : ''}</strong></div>
             </div>` : '<p class="muted">Aucun passage enregistré.</p>'}
           </div>
           ${canSubmit || canCancel ? `<div class="row mt">${canSubmit ? `<button class="btn btn-primary" data-submit>${icon('check')} Envoyer au RH</button>` : ''}${canCancel ? `<button class="btn btn-danger" data-cancel>${icon('close')} Annuler la demande</button>` : ''}</div>` : ''}

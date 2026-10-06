@@ -17,6 +17,8 @@ const DEFAULTS = {
   session_inactivite_gardien_min: 480,
   postes_garde: ['Poste de garde principal'],
   pieces_jointes_actives: true,
+  // Scan du QR code au poste de garde (caméra) : désactivé tant que la société n'en a pas besoin.
+  scanner_qr_actif: false,
   motif_refus_obligatoire: true,
   notifications_email: false,
   sauvegarde_auto: true,
@@ -35,6 +37,7 @@ const RULES = {
   session_inactivite_gardien_min: (v) => Number.isInteger(v) && v >= 5 && v <= 1440,
   postes_garde: (v) => Array.isArray(v) && v.length > 0 && v.length <= 20 && v.every((x) => typeof x === 'string' && x.trim() && x.length <= 60),
   pieces_jointes_actives: (v) => typeof v === 'boolean',
+  scanner_qr_actif: (v) => typeof v === 'boolean',
   motif_refus_obligatoire: (v) => typeof v === 'boolean',
   notifications_email: (v) => typeof v === 'boolean',
   sauvegarde_auto: (v) => typeof v === 'boolean',
