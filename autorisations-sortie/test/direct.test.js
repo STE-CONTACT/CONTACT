@@ -101,3 +101,16 @@ test('Badge = lien ouvert par l\'appareil photo du téléphone (ou tapé par une
   assert.match(adr.data.adresse, /^http:\/\//);
   assert.doesNotMatch(adr.data.adresse, /localhost|127\.0\.0\.1/, 'les téléphones ne peuvent pas ouvrir « localhost »');
 });
+
+test('Le RH peut aussi donner une autorisation (tout le personnel), valable immédiatement', async () => {
+  at('2026-10-09', '10:00');
+  const c = await rh.post('/api/authorizations', { employee_id: S.ids.ines, date_sortie: '2026-10-09', heure_sortie_prevue: '10:15', heure_retour_prevue: '11:00', type_sortie: 'RENDEZ_VOUS', motif: 'Rendez-vous médical' });
+  assert.equal(c.status, 201, JSON.stringify(c.data));
+  assert.equal(c.data.statut, 'VALIDEE');
+  assert.equal(c.data.approved_by, S.ids.rh);
+  const g = await gardien.get('/api/notifications');
+  assert.ok(g.data.items.some((n) => n.entity_id === c.data.id && /Autorisée par/.test(n.message)));
+  assert.equal((await gardien.get('/api/gate/lookup?q=4101')).data.verdict, 'VALIDEE');
+  // Le gardien ne peut toujours pas créer d'autorisation
+  assert.equal((await gardien.post('/api/authorizations', { employee_id: S.ids.ines })).status, 403);
+});

@@ -4,7 +4,7 @@ Application web pour gérer les autorisations de sortie des opérateurs et ouvri
 
 1. **Le chef d'équipe (ou le responsable du département) donne l'autorisation.** Elle est valable immédiatement, sans validation RH.
 2. **Le gardien la voit tout de suite** sur sa tablette : 🟢 AUTORISÉ ou 🔴 NON AUTORISÉ. Il valide la sortie, puis le retour.
-3. **Le RH consulte l'historique** et télécharge un **fichier Excel de suivi** présentable (jour, semaine, mois ou période).
+3. **Le RH peut aussi donner une autorisation** (pour tout le personnel). Il consulte l'historique et télécharge un **fichier Excel de suivi** présentable (jour, semaine, mois ou période).
 
 Si la société le souhaite, l'administrateur peut rendre la validation RH obligatoire dans *Paramètres*.
 
@@ -52,7 +52,7 @@ Au premier démarrage sans données de démonstration, un compte `admin` est cr�
 | Rôle | Parcours |
 |---|---|
 | Chef d'équipe | **Nouvelle** → matricule → avec/sans retour → heure → motif → **AUTORISER LA SORTIE** |
-| RH | **Historique** et **Rapport Excel** (aucune validation à faire, sauf si l'option « Validation RH obligatoire » est activée) |
+| RH | **Nouvelle** autorisation (tout le personnel) ; **Historique** et **Rapport Excel** (aucune validation à faire, sauf si l'option « Validation RH obligatoire » est activée) |
 | Gardien | Taper le matricule → 🟢 **AUTORISÉ** ou 🔴 **NON AUTORISÉ** → **VALIDER LA SORTIE** ; au retour → **RETOUR** |
 
 **Deux types d'autorisation** :

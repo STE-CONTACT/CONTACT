@@ -237,8 +237,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .f-choice button small { font-weight: 500; font-size: .8rem; color: var(--gray-500); }
 .f-choice button.active { border-color: var(--navy-700); background: var(--navy-700); color: var(--white); }
 .f-choice button.active small { color: #c8d4e4; }
-.f-times { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
-.f-times input { font-size: 1.3rem; font-weight: 700; min-height: 52px; text-align: center; }
+.f-times { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; }
+.f-times input { min-width: 0; font-size: 1.3rem; font-weight: 700; min-height: 52px; text-align: center; }
 .f-motifs .chip { padding: 9px 14px; font-size: .92rem; }
 
 .r-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }

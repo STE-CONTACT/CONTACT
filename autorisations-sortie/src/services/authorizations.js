@@ -63,7 +63,8 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
   }
 
   function canManageEmployee(user, employee) {
-    if (user.role === 'admin') return true;
+    // Le RH peut autoriser tout le personnel ; le chef seulement celui de ses affectations.
+    if (user.role === 'admin' || user.role === 'rh') return true;
     if (user.role !== 'chef') return false;
     if (user.droit_toutes_equipes) return true;
     return chefTeamIds(user).includes(employee.team_id);
@@ -258,7 +259,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
 
   /** Création d'une autorisation (brouillon ou directement soumise). */
   function create(user, input, req) {
-    if (!['chef', 'admin'].includes(user.role)) throw forbidden("Seuls les chefs d'équipe et l'administrateur peuvent créer une autorisation");
+    if (!['chef', 'rh', 'admin'].includes(user.role)) throw forbidden("Seuls les chefs d'équipe, le RH et l'administrateur peuvent donner une autorisation");
     const employeeId = Number(input.employee_id);
     const emp = db.get('SELECT * FROM employees WHERE id = ?', employeeId);
     if (!emp) throw badRequest('Opérateur introuvable');
@@ -267,7 +268,8 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const fields = validateFields(input);
     const submit = input.submit !== false;
     // Par défaut, l'autorisation du chef est valable immédiatement (pas de validation RH).
-    const auto = submit && !settings.get('validation_rh_requise');
+    // Une autorisation donnée par le RH (ou l'admin) est toujours valable immédiatement.
+    const auto = submit && (!settings.get('validation_rh_requise') || ['rh', 'admin'].includes(user.role));
     const statut = !submit ? 'BROUILLON' : auto ? 'VALIDEE' : 'EN_ATTENTE';
     const w = checkWindow(employeeId, fields);
     const now = clock.nowIso();
@@ -323,7 +325,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     if (user.role !== 'admin' && a.created_by !== user.id) throw forbidden();
     checkWindow(a.employee_id, { ...a, avec_retour: a.avec_retour ? 1 : 0 }, id);
     const now = clock.nowIso();
-    const auto = !settings.get('validation_rh_requise');
+    const auto = !settings.get('validation_rh_requise') || ['rh', 'admin'].includes(user.role);
     db.tx(() => {
       const r = auto
         ? db.run("UPDATE exit_authorizations SET statut='VALIDEE', submitted_at=?, approved_by=?, approved_at=?, updated_at=? WHERE id=? AND statut='BROUILLON'", now, user.id, now, now, id)

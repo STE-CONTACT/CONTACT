@@ -225,7 +225,7 @@ export async function renderMatricules(el) {
 // ================================================================== ÉQUIPES
 export async function renderTeams(el) {
   const [shifts, services, users] = await Promise.all([get('/api/shifts'), get('/api/services'), get('/api/users')]);
-  const chefs = users.filter((u) => u.role === 'chef' && u.actif);
+  const chefs = users.filter((u) => ['chef', 'rh'].includes(u.role) && u.actif);
   const fields = [
     { name: 'nom', label: "Nom de l'affectation", required: true, placeholder: 'Injection, Assemblage…' },
     { name: 'chef_equipe_id', label: 'Chef / responsable', type: 'select', options: chefs, empty: '—', optionLabel: (u) => `${u.prenom} ${u.nom}` },

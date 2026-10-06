@@ -280,7 +280,7 @@ module.exports = function adminRoutes(ctx) {
     if (!t.nom) throw badRequest('Nom obligatoire');
     if (t.chef_equipe_id) {
       const u = db.get('SELECT role FROM users WHERE id = ?', t.chef_equipe_id);
-      if (!u || !['chef', 'admin'].includes(u.role)) throw badRequest("Le chef sélectionné doit avoir le rôle Chef d'équipe");
+      if (!u || !['chef', 'rh', 'admin'].includes(u.role)) throw badRequest("Le responsable doit avoir le rôle Chef d'équipe ou RH");
     }
     return t;
   }

@@ -15,8 +15,8 @@ const app = document.getElementById('app');
 // ------------------------------------------------------------------ routes
 const ROUTES = [
   { path: '/dashboard', title: 'Tableau de bord', roles: ['admin', 'rh', 'chef'], view: dashboard.render },
-  { path: '/nouvelle', title: 'Nouvelle autorisation de sortie', roles: ['chef', 'admin'], view: authz.renderNew },
-  { path: '/mes-demandes', title: 'Mes demandes', roles: ['chef', 'admin'], view: (el) => authz.renderList(el, { mode: 'mine' }) },
+  { path: '/nouvelle', title: 'Nouvelle autorisation de sortie', roles: ['chef', 'rh', 'admin'], view: authz.renderNew },
+  { path: '/mes-demandes', title: 'Mes autorisations', roles: ['chef', 'rh', 'admin'], view: (el) => authz.renderList(el, { mode: 'mine' }) },
   { path: '/equipe', title: 'Mon personnel', roles: ['chef'], view: authz.renderTeam },
   { path: '/en-attente', title: 'Demandes en attente', roles: ['rh', 'admin'], view: (el) => authz.renderList(el, { mode: 'pending' }) },
   { path: '/autorisations', title: 'Autorisations', roles: ['rh', 'admin', 'chef'], view: (el) => authz.renderList(el, { mode: 'all' }) },
@@ -74,8 +74,10 @@ const MENUS = {
   ],
   rh: [
     { path: '/en-attente', label: 'À valider', icon: 'hourglass', count: 'pending', rhOnly: true },
+    { path: '/nouvelle', label: 'Nouvelle autorisation', icon: 'plus', short: 'Nouvelle', primary: true },
     { path: '/historique', label: 'Historique', icon: 'history' },
     { path: '/rapport', label: 'Rapport Excel', icon: 'download', short: 'Excel' },
+    { path: '/mes-demandes', label: 'Mes autorisations', icon: 'list' },
     { path: '/exterieur', label: "À l'extérieur", icon: 'exit', short: 'Dehors' },
     { path: '/dashboard', label: 'Statistiques', icon: 'dashboard' },
     { path: '/autorisations', label: 'Autorisations', icon: 'list' },
@@ -252,7 +254,7 @@ function renderLayout() {
         <header class="topbar">
           <button class="btn btn-ghost btn-icon menu-toggle" id="menu-toggle" aria-label="Menu">${icon('menu')}</button>
           <div class="title" id="page-title"></div>
-          ${isRole('chef', 'admin') ? `<a class="btn btn-primary btn-sm" href="#/nouvelle">${icon('plus')}<span class="hide-sm">Nouvelle</span></a>` : ''}
+          ${isRole('chef', 'rh', 'admin') ? `<a class="btn btn-primary btn-sm" href="#/nouvelle">${icon('plus')}<span class="hide-sm">Nouvelle</span></a>` : ''}
           <span class="clock" id="clock" title="Heure de l'entreprise"></span>
           <button class="btn btn-ghost btn-icon bell" id="bell" aria-label="Notifications">${icon('bell')}<span class="badge hidden" id="bell-count"></span></button>
         </header>

@@ -15,7 +15,7 @@ export async function render(el) {
     el.innerHTML = `
       <div class="page-head"><div><h1>Aujourd'hui — ${esc(dmy(d.date))}</h1>
         <p>${isRole('chef') ? 'Périmètre : vos affectations.' : 'Toutes les affectations.'} Mise à jour en temps réel.</p></div>
-        ${isRole('chef', 'admin') ? `<a class="btn btn-primary btn-lg" href="#/nouvelle">${icon('plus')} Nouvelle autorisation de sortie</a>` : ''}
+        ${isRole('chef', 'rh', 'admin') ? `<a class="btn btn-primary btn-lg" href="#/nouvelle">${icon('plus')} Nouvelle autorisation de sortie</a>` : ''}
       </div>
       <div class="kpis">
         <a class="kpi total" href="#/historique?periode=aujourdhui"><div class="v">${t.total}</div><div class="l">Autorisations aujourd'hui</div></a>

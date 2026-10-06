@@ -103,8 +103,8 @@ function renderForm(el, emp) {
         <div class="field"><label for="f-comment">Commentaire</label><textarea id="f-comment" maxlength="1000" rows="2"></textarea></div>
         ${s.pieces_jointes_actives ? '<div class="field"><label for="f-file">Pièce jointe (PDF ou photo, 5 Mo max.)</label><input id="f-file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></div>' : ''}
       </details>
-      <button type="submit" class="btn btn-${s.validation_rh_requise ? 'primary' : 'success'} btn-lg btn-block">${icon('check')} ${s.validation_rh_requise ? 'ENVOYER AU RH' : 'AUTORISER LA SORTIE'}</button>
-      ${s.validation_rh_requise ? '' : '<p class="muted center" style="margin:8px 0 0">Le gardien est prévenu immédiatement.</p>'}
+      ${(() => { const direct = !s.validation_rh_requise || isRole('rh', 'admin'); return `<button type="submit" class="btn btn-${direct ? 'success' : 'primary'} btn-lg btn-block">${icon('check')} ${direct ? 'AUTORISER LA SORTIE' : 'ENVOYER AU RH'}</button>
+      ${direct ? '<p class="muted center" style="margin:8px 0 0">Le gardien est prévenu immédiatement.</p>' : ''}`; })()}
     </form>`;
   const f = (id) => el.querySelector(id);
   let adjusted = false;
@@ -208,7 +208,7 @@ export async function renderList(el, { mode }) {
   const f = { page: 1, size: 25, statut: mode === 'pending' ? 'EN_ATTENTE' : '', q: '', periode: '', mine: mode === 'mine' ? '1' : '', sort: mode === 'pending' ? 'asc' : '' };
   const heading = { mine: ['Mes autorisations', 'Autorisations que vous avez données et leur suivi en temps réel.'], pending: ['Demandes en attente', 'Ouvrir → Vérifier → Valider / Refuser. Traitement possible 24 h/24.'], all: ['Autorisations', isRole('chef') ? 'Autorisations de vos équipes.' : 'Toutes les autorisations.'] }[mode];
   el.innerHTML = `<div class="page-head"><div><h1>${heading[0]}</h1><p>${heading[1]}</p></div>
-      ${isRole('chef', 'admin') && mode !== 'pending' ? `<a class="btn btn-primary" href="#/nouvelle">${icon('plus')} Nouvelle autorisation</a>` : ''}</div>
+      ${isRole('chef', 'rh', 'admin') && mode !== 'pending' ? `<a class="btn btn-primary" href="#/nouvelle">${icon('plus')} Nouvelle autorisation</a>` : ''}</div>
     <div class="card">
       <div class="row mb">
         <input type="search" id="l-q" placeholder="Matricule, nom, prénom ou n°" style="max-width:320px">
