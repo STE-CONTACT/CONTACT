@@ -362,7 +362,9 @@ table.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
   .content { padding: 14px; }
   .topbar { padding: 0 10px; gap: 6px; }
   .topbar .clock { display: none; }
-  .hide-sm { display: none; }
+  .hide-sm, .table.responsive td.hide-sm { display: none; }
+  .table.responsive tr { padding: 4px 10px; }
+  .table.responsive td { padding: 3px 0; }
   .card { padding: 14px; }
   .kpi .v { font-size: 1.6rem; }
   /* Tableaux → cartes */

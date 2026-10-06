@@ -6,6 +6,8 @@ Application web pour gérer les autorisations de sortie des opérateurs et ouvri
 - Le **poste 3 (23:00 → 07:00)** et les sorties qui passent minuit sont gérés correctement. Par exemple, une sortie le 05/10 de 23:30 à 01:00 reste valable jusqu'au 06/10 à 01:00.
 - L'interface s'adapte à l'ordinateur, à la tablette et au smartphone. Elle peut aussi être installée comme une application (PWA).
 
+> 📱 **Utilisation sur téléphones et tablettes dans la société** : suivez le guide pas à pas [INSTALLATION-RESEAU.md](INSTALLATION-RESEAU.md).
+
 ## Démarrage rapide
 
 Il faut **Node.js 22.5 ou plus récent**. L'application n'a besoin d'aucun serveur de base de données : elle utilise SQLite, intégré à Node.

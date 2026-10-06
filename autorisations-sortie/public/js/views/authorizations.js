@@ -248,13 +248,13 @@ export function authorizationTable(items, { decision = false } = {}) {
   return `<div class="table-wrap"><table class="table responsive"><thead><tr>
     <th>N°</th><th>Opérateur</th><th>Équipe</th><th>Créneau</th><th>Type</th><th>Statut</th><th>Chef d'équipe</th>${decision ? '<th></th>' : ''}</tr></thead><tbody>
     ${items.map((a) => `<tr class="clickable ${a.en_retard && a.statut === 'SORTIE_EFFECTUEE' ? 'late' : ''}" data-id="${a.id}">
-      <td data-label="N°" class="mono nowrap">${esc(a.numero)}</td>
-      <td data-label="Opérateur" class="main-cell"><div class="emp">${avatar(a.employee_id, a.emp_photo, a.emp_prenom, a.emp_nom)}<div><div class="name"><span class="mat">${esc(a.matricule)}</span> ${esc(a.emp_nom)} ${esc(a.emp_prenom)}</div><div class="meta">${esc(a.service || '')}</div></div></div></td>
-      <td data-label="Équipe">${esc(a.equipe || '—')}</td>
+      <td data-label="N°" class="mono nowrap hide-sm">${esc(a.numero)}</td>
+      <td data-label="Opérateur" class="main-cell"><div class="emp">${avatar(a.employee_id, a.emp_photo, a.emp_prenom, a.emp_nom)}<div><div class="name"><span class="mat">${esc(a.matricule)}</span> ${esc(a.emp_nom)} ${esc(a.emp_prenom)}</div><div class="meta">${esc(a.service || '')}${a.equipe ? ` · ${esc(a.equipe)}` : ''}</div></div></div></td>
+      <td data-label="Équipe" class="hide-sm">${esc(a.equipe || '—')}</td>
       <td data-label="Créneau" class="nowrap">${windowLabel(a)}</td>
       <td data-label="Type">${esc(a.type_sortie_label)}</td>
       <td data-label="Statut">${statusBadge(a.statut, { a })}</td>
-      <td data-label="Chef">${esc(a.createur || '')}</td>
+      <td data-label="Chef" class="hide-sm">${esc(a.createur || '')}</td>
       ${decision ? `<td class="nowrap"><button class="btn btn-success btn-sm" data-ok="${a.id}">${icon('check')} Valider</button> <button class="btn btn-danger btn-sm" data-ko="${a.id}">Refuser</button></td>` : ''}
     </tr>`).join('')}</tbody></table></div>`;
 }

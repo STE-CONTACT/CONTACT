@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "start:prod": "node --disable-warning=ExperimentalWarning --env-file=.env src/server.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
     "seed:demo": "node --disable-warning=ExperimentalWarning src/db/seed-demo.js",
     "backup": "node --disable-warning=ExperimentalWarning src/db/backup-cli.js",
