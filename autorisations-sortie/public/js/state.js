@@ -1,4 +1,7 @@
 // État global de la session côté client.
+/** Doit correspondre à la version du serveur (package.json). */
+export const APP_VERSION = '1.1.0';
+
 export const state = {
   user: null,
   settings: null,

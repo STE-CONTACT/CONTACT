@@ -1,6 +1,6 @@
 {
   "name": "autorisations-sortie",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Gestion numérique des autorisations de sortie des opérateurs (3x8) — chef d'équipe, RH, poste de garde",
   "main": "src/server.js",

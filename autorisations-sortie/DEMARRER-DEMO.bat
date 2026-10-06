@@ -21,7 +21,15 @@ if %NODE_MAJ% LSS 22 (
   pause
   exit /b 1
 )
-if not exist node_modules (
+netstat -ano | findstr /R /C:":3000 .*LISTENING" >nul
+if not errorlevel 1 (
+  echo  [ATTENTION] L'application tourne deja ^(port 3000 occupe^), peut-etre une ANCIENNE version.
+  echo  Fermez l'autre fenetre noire de l'application, puis relancez ce fichier.
+  echo  ^(Ou redemarrez le PC.^)
+  pause
+  exit /b 1
+)
+if not exist node_modules\express (
   echo  Installation des composants ^(une seule fois, 1 a 2 minutes^)...
   call npm install
   if errorlevel 1 (

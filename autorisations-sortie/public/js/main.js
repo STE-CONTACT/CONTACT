@@ -1,6 +1,6 @@
 // Point d'entrée : connexion, mise en page selon le rôle, routage, temps réel, inactivité.
 import { get, post, put, on, emit } from './api.js';
-import { state, isRole } from './state.js';
+import { state, isRole, APP_VERSION } from './state.js';
 import { esc, icon, LOGO, toast, toastError, $, localTimeStr, fmtDateTime, beep, navigate } from './ui.js';
 import { registerServiceWorker, pushStatus } from './push.js';
 import * as dashboard from './views/dashboard.js';
@@ -122,9 +122,15 @@ function setSession(data) {
 async function renderLogin(message = '') {
   stopSession();
   let entreprise = '';
-  try { entreprise = (await get('/api/auth/public')).entreprise_nom; } catch { /* hors ligne */ }
+  let versionMismatch = false;
+  try {
+    const pub = await get('/api/auth/public');
+    entreprise = pub.entreprise_nom;
+    versionMismatch = pub.version !== APP_VERSION;
+  } catch { /* hors ligne */ }
   app.innerHTML = `<div class="login-page"><form class="login-card" autocomplete="on">
     <div class="brand"><div class="logo">${LOGO}</div><div><h1>Autorisations de sortie</h1><p>${esc(entreprise)}</p></div></div>
+    ${versionMismatch ? '<div class="error"><strong>Ancien serveur encore en marche.</strong> Fermez toutes les fenêtres noires de l\'application, puis relancez DEMARRER-DEMO.bat.</div>' : ''}
     ${message ? `<div class="error">${esc(message)}</div>` : ''}
     <div class="field"><label for="u">Identifiant</label><input id="u" name="username" type="text" autocomplete="username" autocapitalize="none" required autofocus></div>
     <div class="field"><label for="p">Mot de passe</label><input id="p" name="password" type="password" autocomplete="current-password" required></div>

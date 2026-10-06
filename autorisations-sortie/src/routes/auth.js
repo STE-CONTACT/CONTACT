@@ -6,6 +6,7 @@ const { HttpError, badRequest } = require('../lib/errors');
 const { publicUser, createLoginLimiter } = require('../middleware/auth');
 const { TYPES_SORTIE, ROLE_LABELS } = require('../lib/constants');
 
+const APP_VERSION = require('../../package.json').version;
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 
@@ -33,7 +34,7 @@ module.exports = function authRoutes(ctx) {
   }
 
   router.get('/public', (req, res) => {
-    res.json({ entreprise_nom: settings.get('entreprise_nom') });
+    res.json({ entreprise_nom: settings.get('entreprise_nom'), version: APP_VERSION });
   });
 
   router.post('/login', (req, res) => {
