@@ -10,6 +10,8 @@ const DEFAULTS = {
   rh_heure_fin: '17:00',
   rh_pause_debut: '12:00',
   rh_pause_fin: '13:00',
+  // false : l'autorisation donnée par le chef est valable immédiatement et part au gardien (le RH consulte seulement).
+  validation_rh_requise: false,
   tolerance_sortie_avant_min: 30,
   duree_max_heures: 12,
   delai_creation_max_jours: 30,
@@ -38,6 +40,7 @@ const RULES = {
   postes_garde: (v) => Array.isArray(v) && v.length > 0 && v.length <= 20 && v.every((x) => typeof x === 'string' && x.trim() && x.length <= 60),
   pieces_jointes_actives: (v) => typeof v === 'boolean',
   scanner_qr_actif: (v) => typeof v === 'boolean',
+  validation_rh_requise: (v) => typeof v === 'boolean',
   motif_refus_obligatoire: (v) => typeof v === 'boolean',
   notifications_email: (v) => typeof v === 'boolean',
   sauvegarde_auto: (v) => typeof v === 'boolean',

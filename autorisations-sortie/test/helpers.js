@@ -9,12 +9,12 @@ const { hashPassword, randomToken } = require('../src/lib/security');
 const PASSWORD = 'Test@Password1';
 
 /** Démarre une instance isolée (base temporaire) avec un jeu de données minimal. */
-async function startServer() {
+async function startServer({ validationRh = true } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sorties-test-'));
   process.env.ADMIN_PASSWORD = PASSWORD;
   const { app, ctx, close } = createApp({ dataDir, startJobs: false, quiet: true });
   const { db } = ctx;
-  ctx.settings.update({ fuseau_horaire: 'Africa/Tunis' });
+  ctx.settings.update({ fuseau_horaire: 'Africa/Tunis', validation_rh_requise: validationRh });
   db.run('UPDATE users SET must_change_password = 0 WHERE username = ?', 'admin');
 
   const now = new Date().toISOString();

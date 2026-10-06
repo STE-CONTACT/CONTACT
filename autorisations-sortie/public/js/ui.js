@@ -251,6 +251,6 @@ export const ACTIONS = {
   POSTE_CREE: 'Poste créé', POSTE_MODIFIE: 'Poste modifié', POSTE_SUPPRIME: 'Poste supprimé', POSTE_DESACTIVE: 'Poste désactivé',
   POSTE_GARDE_CHOISI: 'Poste de garde sélectionné', PARAMETRES_MODIFIES: 'Paramètres modifiés', SAUVEGARDE_CREEE: 'Sauvegarde créée',
   SAUVEGARDE_AUTO: 'Sauvegarde automatique', SAUVEGARDE_TELECHARGEE: 'Sauvegarde téléchargée', AUDIT_VERIFIE: 'Vérification du journal',
-  EXPORT_HISTORIQUE: 'Export historique', INITIALISATION: 'Initialisation',
+  EXPORT_HISTORIQUE: 'Export historique', EXPORT_EXCEL: 'Export Excel de suivi', INITIALISATION: 'Initialisation',
 };
 export const actionLabel = (a) => ACTIONS[a] || a;

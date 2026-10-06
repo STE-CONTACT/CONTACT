@@ -1,7 +1,7 @@
 // Historique des autorisations et recherche multicritère (plusieurs mois / années).
 import { get, qs } from '../api.js';
 import { state, isRole } from '../state.js';
-import { esc, icon, debounce, pager, selectOptions, STATUTS } from '../ui.js';
+import { esc, icon, debounce, pager, selectOptions, STATUTS, localDateStr } from '../ui.js';
 import { authorizationTable, bindTable } from './authorizations.js';
 
 const PERIODES = [['aujourdhui', "Aujourd'hui"], ['hier', 'Hier'], ['semaine', 'Cette semaine'], ['mois', 'Ce mois'], ['', 'Toutes dates'], ['perso', 'Période personnalisée']];
@@ -17,7 +17,7 @@ export async function render(el, { advanced }) {
   const name = (u) => `${u.prenom} ${u.nom}`;
   el.innerHTML = `<div class="page-head"><div><h1>${advanced ? 'Recherche' : 'Historique des autorisations'}</h1>
       <p>Toutes les opérations sont conservées : création, validation, notification, sortie, retour.</p></div>
-      <button class="btn" id="h-export">${icon('download')} Export CSV (Excel)</button></div>
+      <button class="btn btn-success" id="h-export">${icon('download')} Télécharger en Excel</button></div>
     <div class="card">
       <div class="chips mb" id="h-periodes">${PERIODES.map(([v, l]) => `<button class="chip ${v === f.periode ? 'active' : ''}" data-p="${v}">${l}</button>`).join('')}</div>
       <div class="form-grid" id="h-perso" ${f.periode === 'perso' ? '' : 'hidden'}>
@@ -71,7 +71,35 @@ export async function render(el, { advanced }) {
   });
   el.querySelector('#h-export').addEventListener('click', () => {
     const q = query(); delete q.page; delete q.size;
-    window.location.href = `/api/authorizations/export.csv${qs(q)}`;
+    window.location.href = `/api/rapport.xlsx${qs(q)}`;
   });
   await load();
+}
+
+// ================================================================== RAPPORT EXCEL (RH)
+export async function renderReport(el) {
+  const teams = await get('/api/teams');
+  const today = localDateStr();
+  el.innerHTML = `<div class="page-head"><div><h1>Rapport Excel de suivi</h1>
+      <p>Fichier Excel présentable : liste détaillée des sorties (heures prévues et réelles, retours, retards) et une feuille de synthèse.</p></div></div>
+    <div class="card">
+      <div class="field"><label>Équipe</label><select id="r-team" style="max-width:320px">${selectOptions(teams, '', { empty: 'Toutes les équipes' })}</select></div>
+      <div class="r-grid">
+        <button class="btn btn-success btn-lg" data-p="aujourdhui">${icon('download')} Aujourd'hui</button>
+        <button class="btn btn-success btn-lg" data-p="hier">${icon('download')} Hier</button>
+        <button class="btn btn-success btn-lg" data-p="semaine">${icon('download')} Cette semaine</button>
+        <button class="btn btn-success btn-lg" data-p="mois">${icon('download')} Ce mois</button>
+      </div>
+      <h3 class="mt">Autre période</h3>
+      <div class="form-grid">
+        <div class="field"><label>Du</label><input type="date" id="r-from" value="${today.slice(0, 8)}01"></div>
+        <div class="field"><label>Au</label><input type="date" id="r-to" value="${today}"></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-primary btn-block" id="r-custom">${icon('download')} Télécharger</button></div>
+      </div>
+    </div>`;
+  const team = () => el.querySelector('#r-team').value;
+  el.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { window.location.href = `/api/rapport.xlsx${qs({ periode: b.dataset.p, team_id: team() })}`; }));
+  el.querySelector('#r-custom').addEventListener('click', () => {
+    window.location.href = `/api/rapport.xlsx${qs({ date_from: el.querySelector('#r-from').value, date_to: el.querySelector('#r-to').value, team_id: team() })}`;
+  });
 }

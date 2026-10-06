@@ -21,6 +21,7 @@ const ROUTES = [
   { path: '/en-attente', title: 'Demandes en attente', roles: ['rh', 'admin'], view: (el) => authz.renderList(el, { mode: 'pending' }) },
   { path: '/autorisations', title: 'Autorisations', roles: ['rh', 'admin', 'chef'], view: (el) => authz.renderList(el, { mode: 'all' }) },
   { path: '/autorisations/:id', title: 'Autorisation', roles: ['rh', 'admin', 'chef'], view: (el, p) => authz.renderDetail(el, Number(p.id)) },
+  { path: '/rapport', title: 'Rapport Excel de suivi', roles: ['admin', 'rh', 'chef'], view: historyView.renderReport },
   { path: '/historique', title: 'Historique des autorisations', roles: ['admin', 'rh', 'chef'], view: (el) => historyView.render(el, { advanced: false }) },
   { path: '/recherche', title: 'Recherche', roles: ['admin', 'rh'], view: (el) => historyView.render(el, { advanced: true }) },
   { path: '/exterieur', title: "Opérateurs actuellement à l'extérieur", roles: ['admin', 'rh', 'chef'], view: gate.renderOutsidePage },
@@ -45,10 +46,11 @@ const MENUS = {
   admin: [
     { section: 'Pilotage' },
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/en-attente', label: 'Demandes en attente', icon: 'hourglass', count: 'pending' },
+    { path: '/en-attente', label: 'Demandes en attente', icon: 'hourglass', count: 'pending', rhOnly: true },
     { path: '/autorisations', label: 'Autorisations', icon: 'list' },
     { path: '/exterieur', label: "À l'extérieur", icon: 'exit' },
     { path: '/historique', label: 'Historique', icon: 'history' },
+    { path: '/rapport', label: 'Rapport Excel', icon: 'download' },
     { path: '/garde', label: 'Poste de garde', icon: 'gate' },
     { section: 'Référentiels' },
     { path: '/admin/utilisateurs', label: 'Utilisateurs', icon: 'users' },
@@ -71,11 +73,12 @@ const MENUS = {
     { path: '/dashboard', label: 'Statistiques', icon: 'dashboard' },
   ],
   rh: [
-    { path: '/en-attente', label: 'À valider', icon: 'hourglass', count: 'pending' },
-    { path: '/autorisations', label: 'Autorisations', icon: 'list' },
-    { path: '/exterieur', label: "À l'extérieur", icon: 'exit', short: 'Dehors' },
+    { path: '/en-attente', label: 'À valider', icon: 'hourglass', count: 'pending', rhOnly: true },
     { path: '/historique', label: 'Historique', icon: 'history' },
+    { path: '/rapport', label: 'Rapport Excel', icon: 'download', short: 'Excel' },
+    { path: '/exterieur', label: "À l'extérieur", icon: 'exit', short: 'Dehors' },
     { path: '/dashboard', label: 'Statistiques', icon: 'dashboard' },
+    { path: '/autorisations', label: 'Autorisations', icon: 'list' },
   ],
   gardien: [
     { path: '/garde', label: 'Contrôle' },
@@ -94,7 +97,7 @@ function match(hash) {
   return null;
 }
 
-const defaultPath = () => ({ gardien: '/garde', chef: '/mes-demandes', rh: '/en-attente' }[state.user.role] || '/dashboard');
+const defaultPath = () => ({ gardien: '/garde', chef: '/mes-demandes', rh: state.settings.validation_rh_requise ? '/en-attente' : '/historique' }[state.user.role] || '/dashboard');
 
 
 // ------------------------------------------------------------------ démarrage
@@ -275,7 +278,7 @@ function renderNav() {
   const nav = $('#nav');
   if (!nav) return;
   const current = (location.hash.replace(/^#/, '') || '').split('?')[0];
-  const items = MENUS[state.user.role] || [];
+  const items = (MENUS[state.user.role] || []).filter((i) => !i.rhOnly || state.settings.validation_rh_requise);
   if (state.user.role === 'gardien') {
     nav.innerHTML = items.map((i) => `<a href="#${i.path}" class="${current === i.path ? 'active' : ''}">${esc(i.label)}${i.count && counts[i.count] ? `<span class="count">${counts[i.count]}</span>` : ''}</a>`).join('');
     return;

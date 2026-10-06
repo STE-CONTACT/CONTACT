@@ -356,6 +356,7 @@ export async function renderSettings(el) {
           <div class="field"><label>Durée maximale (heures)</label><input type="number" min="1" max="24" name="duree_max_heures" value="${s.duree_max_heures}"></div>
           <div class="field"><label>Création à l'avance max. (jours)</label><input type="number" min="0" max="365" name="delai_creation_max_jours" value="${s.delai_creation_max_jours}"></div>
         </div>
+        <label class="check"><input type="checkbox" name="validation_rh_requise" ${s.validation_rh_requise ? 'checked' : ''}> Validation RH obligatoire avant la sortie <small class="muted">(décoché : l'autorisation du chef est valable tout de suite et part au gardien)</small></label>
         <label class="check"><input type="checkbox" name="motif_refus_obligatoire" ${s.motif_refus_obligatoire ? 'checked' : ''}> Motif obligatoire en cas de refus</label>
         <label class="check"><input type="checkbox" name="pieces_jointes_actives" ${s.pieces_jointes_actives ? 'checked' : ''}> Autoriser les pièces jointes</label>
         <label class="check"><input type="checkbox" name="scanner_qr_actif" ${s.scanner_qr_actif ? 'checked' : ''}> Afficher le bouton « Scanner QR » au poste de garde (caméra)</label>
@@ -390,7 +391,7 @@ export async function renderSettings(el) {
       rh_heure_debut: fd.get('rh_heure_debut'), rh_heure_fin: fd.get('rh_heure_fin'), rh_pause_debut: fd.get('rh_pause_debut'), rh_pause_fin: fd.get('rh_pause_fin'),
       tolerance_sortie_avant_min: num('tolerance_sortie_avant_min'), duree_max_heures: num('duree_max_heures'), delai_creation_max_jours: num('delai_creation_max_jours'),
       session_inactivite_min: num('session_inactivite_min'), session_inactivite_gardien_min: num('session_inactivite_gardien_min'),
-      motif_refus_obligatoire: fd.get('motif_refus_obligatoire') === 'on', pieces_jointes_actives: fd.get('pieces_jointes_actives') === 'on', scanner_qr_actif: fd.get('scanner_qr_actif') === 'on',
+      motif_refus_obligatoire: fd.get('motif_refus_obligatoire') === 'on', pieces_jointes_actives: fd.get('pieces_jointes_actives') === 'on', scanner_qr_actif: fd.get('scanner_qr_actif') === 'on', validation_rh_requise: fd.get('validation_rh_requise') === 'on',
       notifications_email: fd.get('notifications_email') === 'on',
     };
     try {

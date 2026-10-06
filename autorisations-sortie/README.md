@@ -1,6 +1,12 @@
 # Autorisations de sortie — STE CONTACT
 
-Application web pour gérer les autorisations de sortie des opérateurs et ouvriers. Elle remplace le papier : le **chef d'équipe** crée la demande, le **RH / responsable** la valide ou la refuse, et le **gardien** reçoit la validation immédiatement sur sa tablette. Il enregistre ensuite la sortie et le retour.
+Application web pour gérer les autorisations de sortie des opérateurs et ouvriers, sans papier :
+
+1. **Le chef d'équipe (ou le responsable du département) donne l'autorisation.** Elle est valable immédiatement, sans validation RH.
+2. **Le gardien la voit tout de suite** sur sa tablette : 🟢 AUTORISÉ ou 🔴 NON AUTORISÉ. Il valide la sortie, puis le retour.
+3. **Le RH consulte l'historique** et télécharge un **fichier Excel de suivi** présentable (jour, semaine, mois ou période).
+
+Si la société le souhaite, l'administrateur peut rendre la validation RH obligatoire dans *Paramètres*.
 
 - Fonctionne **24 h/24 et 7 j/7**, pour les équipes en 3×8. Les horaires RH (08:00–17:00, pause 12:00–13:00) servent seulement d'information : ils ne bloquent jamais une opération.
 - Le **poste 3 (23:00 → 07:00)** et les sorties qui passent minuit sont gérés correctement. Par exemple, une sortie le 05/10 de 23:30 à 01:00 reste valable jusqu'au 06/10 à 01:00.
@@ -45,8 +51,8 @@ Au premier démarrage sans données de démonstration, un compte `admin` est cr�
 
 | Rôle | Parcours |
 |---|---|
-| Chef d'équipe | **Nouvelle autorisation** → rechercher le matricule (ou le nom) → remplir → **Envoyer** |
-| RH | **Demandes en attente** → ouvrir → vérifier → **VALIDER / REFUSER** (motif obligatoire en cas de refus) |
+| Chef d'équipe | **Nouvelle** → matricule → avec/sans retour → heure → motif → **AUTORISER LA SORTIE** |
+| RH | **Historique** et **Rapport Excel** (aucune validation à faire, sauf si l'option « Validation RH obligatoire » est activée) |
 | Gardien | Taper le matricule → 🟢 **AUTORISÉ** ou 🔴 **NON AUTORISÉ** → **VALIDER LA SORTIE** ; au retour → **RETOUR** |
 
 **Deux types d'autorisation** :

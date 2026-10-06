@@ -23,7 +23,7 @@ module.exports = function authRoutes(ctx) {
       entreprise_nom: s.entreprise_nom, fuseau_horaire: s.fuseau_horaire,
       rh_heure_debut: s.rh_heure_debut, rh_heure_fin: s.rh_heure_fin, rh_pause_debut: s.rh_pause_debut, rh_pause_fin: s.rh_pause_fin,
       tolerance_sortie_avant_min: s.tolerance_sortie_avant_min, duree_max_heures: s.duree_max_heures,
-      postes_garde: s.postes_garde, pieces_jointes_actives: s.pieces_jointes_actives, scanner_qr_actif: s.scanner_qr_actif, motif_refus_obligatoire: s.motif_refus_obligatoire,
+      postes_garde: s.postes_garde, pieces_jointes_actives: s.pieces_jointes_actives, scanner_qr_actif: s.scanner_qr_actif, validation_rh_requise: s.validation_rh_requise, motif_refus_obligatoire: s.motif_refus_obligatoire,
       types_sortie: TYPES_SORTIE, roles: ROLE_LABELS,
       vapid_public_key: notifier.vapidPublicKey(),
     };

@@ -19,8 +19,8 @@ export async function render(el) {
       </div>
       <div class="kpis">
         <a class="kpi total" href="#/historique?periode=aujourdhui"><div class="v">${t.total}</div><div class="l">Autorisations aujourd'hui</div></a>
-        <a class="kpi attente" href="#/${isRole('chef') ? 'mes-demandes' : 'en-attente'}"><div class="v">${d.en_attente_total}</div><div class="l">En attente</div></a>
-        <div class="kpi validee"><div class="v">${t.validees}</div><div class="l">Validées</div></div>
+        ${s.validation_rh_requise ? `<a class="kpi attente" href="#/${isRole('chef') ? 'mes-demandes' : 'en-attente'}"><div class="v">${d.en_attente_total}</div><div class="l">En attente</div></a>` : ''}
+        <div class="kpi validee"><div class="v">${t.validees}</div><div class="l">Autorisées</div></div>
         <div class="kpi refusee"><div class="v">${t.refusees}</div><div class="l">Refusées</div></div>
         <a class="kpi sortie" href="#/exterieur"><div class="v">${t.sorties_en_cours}</div><div class="l">Actuellement sortis</div></a>
         ${t.retours_en_retard ? `<a class="kpi retard" href="#/exterieur"><div class="v">${t.retours_en_retard}</div><div class="l">Retours en retard</div></a>` : ''}
@@ -28,7 +28,7 @@ export async function render(el) {
         <div class="kpi expiree"><div class="v">${t.expirees}</div><div class="l">Expirées</div></div>
       </div>
       <div class="grid grid-2">
-        <div class="card">
+        <div class="card" ${s.validation_rh_requise || d.pending.length ? '' : 'hidden'}>
           <div class="card-head"><h2>Demandes en attente</h2>${isRole('rh', 'admin') ? '<a href="#/en-attente">Tout voir</a>' : ''}</div>
           ${d.pending.length ? `<div class="result-list">${d.pending.map((a) => `
             <div class="result-item" data-open="${a.id}">

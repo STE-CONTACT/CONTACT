@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
 const { toCsv } = require('../lib/csv');
+const { buildReport } = require('../lib/excel');
 const { notFound } = require('../lib/errors');
 const { localDate, localTime, dayBoundsUtc } = require('../lib/time');
 const clock = require('../lib/clock');
@@ -39,6 +40,21 @@ module.exports = function authorizationRoutes(ctx) {
     ctx.audit.log({ user: req.user, action: 'EXPORT_HISTORIQUE', entityType: 'authorization', after: { lignes: rows.length, filtres: req.query }, req });
     res.set('Content-Disposition', `attachment; filename="autorisations-${localDate(clock.now(), tz)}.csv"`);
     res.type('text/csv; charset=utf-8').send(csv);
+  });
+
+  // Fichier Excel de suivi (présentable) : détail + synthèse
+  router.get('/rapport.xlsx', staff, async (req, res) => {
+    const tz = settings.tz();
+    const rows = authz.exportRows(req.user, req.query);
+    const range = authz.periodRange(req.query);
+    const fr = (x) => x.split('-').reverse().join('/');
+    const periode = range.from && range.to ? (range.from === range.to ? `le ${fr(range.from)}` : `du ${fr(range.from)} au ${fr(range.to)}`)
+      : range.from ? `depuis le ${fr(range.from)}` : range.to ? `jusqu'au ${fr(range.to)}` : 'toutes les dates';
+    const buf = await buildReport(rows, { entreprise: settings.get('entreprise_nom'), periode, tz, generePar: `${req.user.prenom} ${req.user.nom}` });
+    ctx.audit.log({ user: req.user, action: 'EXPORT_EXCEL', entityType: 'authorization', after: { lignes: rows.length, periode }, req });
+    const name = `suivi-sorties-${range.from || 'debut'}${range.to && range.to !== range.from ? `-au-${range.to}` : ''}.xlsx`;
+    res.set('Content-Disposition', `attachment; filename="${name}"`);
+    res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(Buffer.from(buf));
   });
 
   router.get('/authorizations/:id', staff, (req, res) => {

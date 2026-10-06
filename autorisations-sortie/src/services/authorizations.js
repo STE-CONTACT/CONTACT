@@ -239,6 +239,17 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     });
   }
 
+  /** Le poste de garde est prévenu immédiatement d'une autorisation valable. */
+  function notifyGuards(a) {
+    notifier.notify({
+      userIds: notifier.recipientsByRole('gardien'),
+      type: 'AUTORISATION_VALIDEE',
+      titre: `Sortie autorisée — MAT. ${a.matricule}`,
+      message: `${a.emp_prenom} ${a.emp_nom} (${a.service || ''} — ${a.equipe || 'sans équipe'}) : sortie ${fmtWindow(a)}. Autorisée par ${a.valideur || a.createur}.`,
+      entityType: 'authorization', entityId: a.id,
+    });
+  }
+
   function fmtWindow(a) {
     const d = a.date_sortie.split('-').reverse().join('/');
     if (!a.avec_retour) return `le ${d} à ${a.heure_sortie_prevue} — SANS RETOUR (valable jusqu'à ${a.valable_jusqua})`;
@@ -255,6 +266,9 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     if (!canManageEmployee(user, emp)) throw forbidden("Cet opérateur n'appartient pas à votre équipe");
     const fields = validateFields(input);
     const submit = input.submit !== false;
+    // Par défaut, l'autorisation du chef est valable immédiatement (pas de validation RH).
+    const auto = submit && !settings.get('validation_rh_requise');
+    const statut = !submit ? 'BROUILLON' : auto ? 'VALIDEE' : 'EN_ATTENTE';
     const w = checkWindow(employeeId, fields);
     const now = clock.nowIso();
     const attachment = saveAttachment(input.piece_jointe);
@@ -262,22 +276,24 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const id = db.tx(() => {
       const r = db.run(`INSERT INTO exit_authorizations
         (employee_id, created_by, date_sortie, heure_sortie_prevue, heure_retour_prevue, avec_retour, debut_at, fin_at, type_sortie, motif, commentaire,
-         piece_jointe, piece_jointe_nom, piece_jointe_type, statut, created_at, submitted_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         piece_jointe, piece_jointe_nom, piece_jointe_type, statut, created_at, submitted_at, updated_at, approved_by, approved_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       employeeId, user.id, fields.date_sortie, fields.heure_sortie_prevue, fields.heure_retour_prevue, fields.avec_retour,
       w.debut.toISOString(), w.fin.toISOString(), fields.type_sortie, fields.motif, fields.commentaire ?? null,
       attachment?.file ?? null, attachment?.nom ?? null, attachment?.type ?? null,
-      submit ? 'EN_ATTENTE' : 'BROUILLON', now, submit ? now : null, now);
+      statut, now, submit ? now : null, now, auto ? user.id : null, auto ? now : null);
       const newId = Number(r.lastInsertRowid);
       const numero = `AS-${fields.date_sortie.slice(0, 4)}-${String(newId).padStart(6, '0')}`;
       db.run('UPDATE exit_authorizations SET numero = ? WHERE id = ?', numero, newId);
-      const snapshot = { numero, matricule: emp.matricule, ...fields, debut_at: w.debut.toISOString(), fin_at: w.fin.toISOString(), statut: submit ? 'EN_ATTENTE' : 'BROUILLON' };
+      const snapshot = { numero, matricule: emp.matricule, ...fields, debut_at: w.debut.toISOString(), fin_at: w.fin.toISOString(), statut };
       audit.log({ user, action: 'DEMANDE_CREEE', entityType: 'authorization', entityId: newId, after: snapshot, req });
-      if (submit) audit.log({ user, action: 'DEMANDE_SOUMISE', entityType: 'authorization', entityId: newId, after: { statut: 'EN_ATTENTE' }, req });
+      if (auto) audit.log({ user, action: 'AUTORISATION_VALIDEE', entityType: 'authorization', entityId: newId, after: { statut: 'VALIDEE', mode: 'autorisation directe du chef' }, req });
+      else if (submit) audit.log({ user, action: 'DEMANDE_SOUMISE', entityType: 'authorization', entityId: newId, after: { statut: 'EN_ATTENTE' }, req });
       return newId;
     });
     const a = getFull(id);
-    if (submit) notifySubmitted(a, user);
+    if (auto) notifyGuards(a);
+    else if (submit) notifySubmitted(a, user);
     broadcastChange(a, 'created');
     return a;
   }
@@ -307,13 +323,16 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     if (user.role !== 'admin' && a.created_by !== user.id) throw forbidden();
     checkWindow(a.employee_id, { ...a, avec_retour: a.avec_retour ? 1 : 0 }, id);
     const now = clock.nowIso();
+    const auto = !settings.get('validation_rh_requise');
     db.tx(() => {
-      const r = db.run("UPDATE exit_authorizations SET statut='EN_ATTENTE', submitted_at=?, updated_at=? WHERE id=? AND statut='BROUILLON'", now, now, id);
+      const r = auto
+        ? db.run("UPDATE exit_authorizations SET statut='VALIDEE', submitted_at=?, approved_by=?, approved_at=?, updated_at=? WHERE id=? AND statut='BROUILLON'", now, user.id, now, now, id)
+        : db.run("UPDATE exit_authorizations SET statut='EN_ATTENTE', submitted_at=?, updated_at=? WHERE id=? AND statut='BROUILLON'", now, now, id);
       if (!r.changes) throw conflict('La demande a été modifiée entre-temps');
-      audit.log({ user, action: 'DEMANDE_SOUMISE', entityType: 'authorization', entityId: id, before: { statut: 'BROUILLON' }, after: { statut: 'EN_ATTENTE' }, req });
+      audit.log({ user, action: auto ? 'AUTORISATION_VALIDEE' : 'DEMANDE_SOUMISE', entityType: 'authorization', entityId: id, before: { statut: 'BROUILLON' }, after: { statut: auto ? 'VALIDEE' : 'EN_ATTENTE' }, req });
     });
     const full = getFull(id);
-    notifySubmitted(full, user);
+    if (auto) notifyGuards(full); else notifySubmitted(full, user);
     broadcastChange(full, 'submitted');
     return full;
   }
@@ -334,13 +353,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       audit.log({ user, action: 'AUTORISATION_VALIDEE', entityType: 'authorization', entityId: id, before: { statut: 'EN_ATTENTE' }, after: { statut: 'VALIDEE', commentaire_rh: commentaire }, req });
     });
     const full = getFull(id);
-    notifier.notify({
-      userIds: notifier.recipientsByRole('gardien'),
-      type: 'AUTORISATION_VALIDEE',
-      titre: `Sortie autorisée — MAT. ${full.matricule}`,
-      message: `${full.emp_prenom} ${full.emp_nom} (${full.service || ''} — ${full.equipe || 'sans équipe'}) : sortie ${fmtWindow(full)}.`,
-      entityType: 'authorization', entityId: id,
-    });
+    notifyGuards(full);
     notifier.notify({
       userIds: [full.created_by], excludeUserId: user.id,
       type: 'AUTORISATION_VALIDEE',

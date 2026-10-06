@@ -125,14 +125,15 @@ for (let d = 120; d >= 1; d--) {
       clock.advance(3 + Math.floor(rand() * 15));
       const rh = users[pick([rh1, rh2])];
       if (fate < 0.08) {
-        authz.reject(rh, a.id, { motif_refus: pick(['Sortie non justifiée', 'Effectif insuffisant sur le poste', 'Justificatif manquant']) }, fakeReq('10.0.0.30'));
+        if (a.statut === 'EN_ATTENTE') authz.reject(rh, a.id, { motif_refus: pick(['Sortie non justifiée', 'Effectif insuffisant sur le poste', 'Justificatif manquant']) }, fakeReq('10.0.0.30'));
+        else authz.cancel(chef, a.id, { motif: 'Sortie finalement non nécessaire' }, fakeReq('10.0.0.21'));
       } else if (fate < 0.12) {
         authz.cancel(chef, a.id, { motif: "Annulée à la demande de l'opérateur" }, fakeReq('10.0.0.21'));
       } else if (fate < 0.15) {
         clock.set(new Date(a.fin_at).getTime() + 60000);
         authz.expireDue();
       } else {
-        authz.approve(rh, a.id, {}, fakeReq('10.0.0.30'));
+        if (a.statut === 'EN_ATTENTE') authz.approve(rh, a.id, {}, fakeReq('10.0.0.30'));
         if (fate < 0.19) {
           clock.set(new Date(a.fin_at).getTime() + 60000);
           authz.expireDue();
@@ -167,7 +168,7 @@ function scenario(emp, chefId, startOffset, length, steps, type = 'PERSONNELLE',
     employee_id: emp.id, date_sortie: date, heure_sortie_prevue: hhmm(s), heure_retour_prevue: avecRetour ? hhmm(s + length) : null,
     avec_retour: avecRetour, type_sortie: type, motif: avecRetour ? pick(MOTIFS[type]) : 'Maladie — quitte le poste', submit: true,
   }, fakeReq('10.0.0.21'));
-  if (steps.includes('approve')) { clock.advance(4); authz.approve(users[rh1], a.id, {}, fakeReq('10.0.0.30')); }
+  if (steps.includes('approve') && a.statut === 'EN_ATTENTE') { clock.advance(4); authz.approve(users[rh1], a.id, {}, fakeReq('10.0.0.30')); }
   if (steps.includes('exit')) { clock.set(new Date(a.debut_at).getTime() + 2 * 60000); authz.confirmExit(users[g1], a.id, {}, fakeReq('10.0.0.50')); }
   clock.set(null);
   return a;
@@ -175,8 +176,8 @@ function scenario(emp, chefId, startOffset, length, steps, type = 'PERSONNELLE',
 const byTeam = (t) => others.filter((e) => e.team === t);
 try {
   scenario(byTeam(teamA)[0], chefA, 15, 90, ['approve']);                 // validée, sortie dans 15 min
-  scenario(byTeam(teamC)[0], chefC, 40, 60, [], 'RENDEZ_VOUS');           // en attente
-  scenario(byTeam(teamA)[1], chefA, 90, 120, [], 'URGENCE');              // en attente
+  scenario(byTeam(teamC)[0], chefC, 40, 60, [], 'RENDEZ_VOUS');           // autorisée, plus tard
+  scenario(byTeam(teamA)[1], chefA, 90, 120, [], 'URGENCE');              // autorisée, plus tard
   scenario(byTeam(teamC)[1], chefC, -40, 120, ['approve', 'exit']);       // à l'extérieur
   scenario(byTeam(teamM)[0], chefA, -150, 90, ['approve', 'exit']);       // à l'extérieur, retour en retard
   scenario(emp4587, chefB, 5, 85, ['approve']);                           // exemple du cahier des charges : MAT. 4587
