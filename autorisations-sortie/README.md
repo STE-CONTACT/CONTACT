@@ -39,9 +39,9 @@ Au premier démarrage sans données de démonstration, un compte `admin` est cr�
 | Identifiant | Mot de passe | Rôle |
 |---|---|---|
 | `admin` | `Admin@2026!` | Administrateur |
-| `chef.karim` | `Demo@2026!` | Chef d'équipe — Équipe B (poste 23:00–07:00, opérateur 4587 BEN ALI Mohamed) |
-| `chef.ahmed` | `Demo@2026!` | Chef d'équipe — Équipe A + Maintenance 1 |
-| `chef.sami` | `Demo@2026!` | Chef d'équipe — Équipe C |
+| `chef.karim` | `Demo@2026!` | Chef d'équipe — affectation Production (poste 23:00–07:00, opérateur 4587 BEN ALI Mohamed) |
+| `chef.ahmed` | `Demo@2026!` | Chef d'équipe — Injection + Maintenance |
+| `chef.sami` | `Demo@2026!` | Chef d'équipe — Assemblage |
 | `rh.leila`, `rh.nadia` | `Demo@2026!` | RH / Responsable |
 | `gardien.ali`, `gardien.nabil` | `Demo@2026!` | Gardien (écran POSTE DE GARDE) |
 
@@ -67,7 +67,7 @@ Statuts : `BROUILLON`, `EN ATTENTE` 🟡, `VALIDÉE` 🟢, `REFUSÉE` 🔴, `ANN
 
 - **Rôles** : administrateur, chef d'équipe, RH / responsable et gardien. Les opérateurs n'ont pas de compte.
 - **Règles métier vérifiées par le serveur** :
-  - un chef d'équipe ne crée des autorisations que pour son équipe, sauf s'il a le « droit spécial » ;
+  - un chef d'équipe n'autorise que le personnel de son affectation, sauf s'il a le « droit spécial » ;
   - deux demandes ne peuvent pas se chevaucher ;
   - une demande expire automatiquement à la fin de sa période ;
   - le gardien ne peut sortir qu'une autorisation validée et en cours de validité. La tolérance avant l'heure prévue se règle dans les paramètres (30 min par défaut) ;
@@ -78,12 +78,12 @@ Statuts : `BROUILLON`, `EN ATTENTE` 🟡, `VALIDÉE` 🟢, `REFUSÉE` 🔴, `ANN
   - **email** facultatif (SMTP).
 - **Poste de garde** : grands boutons, vérification instantanée, scan du **QR code** par la caméra. Le gardien voit les sorties du jour, les opérateurs à l'extérieur, les retours et l'historique des contrôles. Il n'a **pas accès** au motif, aux commentaires ni aux pièces jointes.
 - **QR codes** : un badge par opérateur, imprimable depuis *Matricules*. Le QR sert **uniquement** à identifier l'opérateur. Si un badge est perdu, on le régénère.
-- **Tableau de bord** : chiffres du jour, demandes en attente, opérateurs à l'extérieur et retards, tendance sur 7 jours, répartition par type et par équipe.
+- **Tableau de bord** : chiffres du jour, demandes en attente, opérateurs à l'extérieur et retards, tendance sur 7 jours, répartition par type et par affectation.
 - **Historique et recherche** sur toute la durée conservée :
   - critères : matricule, nom, prénom, période (aujourd'hui, hier, cette semaine, ce mois ou dates au choix), service, équipe, chef d'équipe, gardien, statut et type ;
   - **export CSV** qui s'ouvre directement dans Excel.
 - **Journal d'audit** : il enregistre chaque action avec l'utilisateur, la date, l'heure, l'IP et les valeurs avant et après. Il est **impossible de le modifier ou de le supprimer**, car des triggers SQLite le bloquent. Les entrées sont **chaînées par empreinte SHA-256**, et un bouton « Vérifier l'intégrité » contrôle cette chaîne.
-- **Administration** : utilisateurs, opérateurs (avec photo et import CSV), équipes, services, postes et horaires, paramètres, sauvegardes.
+- **Administration** : utilisateurs, opérateurs (avec photo et import CSV), **affectations** (Injection, Assemblage, Production…), services, postes et horaires, paramètres, sauvegardes.
 
 ## Sécurité
 

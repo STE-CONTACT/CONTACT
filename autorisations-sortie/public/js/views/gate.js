@@ -157,10 +157,10 @@ export async function renderOutsidePage(el) {
     const list = await get('/api/outside');
     const late = list.filter((a) => a.en_retard).length;
     el.innerHTML = `<div class="page-head"><div><h1>Opérateurs actuellement à l'extérieur</h1><p>${list.length} opérateur(s) dehors${late ? ` dont <strong style="color:var(--red)">${late} en retard</strong>` : ''}. Actualisation automatique.</p></div></div>
-      <div class="card">${list.length ? `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Équipe</th><th>Heure de sortie</th><th>Retour prévu</th><th>Durée depuis la sortie</th><th>Statut</th></tr></thead><tbody>
+      <div class="card">${list.length ? `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Affectation</th><th>Heure de sortie</th><th>Retour prévu</th><th>Durée depuis la sortie</th><th>Statut</th></tr></thead><tbody>
       ${list.map((a) => `<tr class="clickable ${a.en_retard ? 'late' : ''}" data-id="${a.id}">
         <td class="main-cell"><div class="emp">${avatar(a.employee_id, a.emp_photo, a.emp_prenom, a.emp_nom)}<div><div class="name"><span class="mat">${esc(a.matricule)}</span> ${esc(a.emp_prenom)} ${esc(a.emp_nom)}</div><div class="meta">${esc(a.service || '')}</div></div></div></td>
-        <td data-label="Équipe">${esc(a.equipe || '—')}</td><td data-label="Sortie">${fmtTime(a.heure_sortie_reelle)}</td>
+        <td data-label="Affectation">${esc(a.equipe || '—')}</td><td data-label="Sortie">${fmtTime(a.heure_sortie_reelle)}</td>
         <td data-label="Retour prévu">${esc(a.heure_retour_prevue)}${a.retour_lendemain ? ' <small>(J+1)</small>' : ''}</td>
         <td data-label="Durée"><strong>${duration(minutesSince(a.heure_sortie_reelle))}</strong></td>
         <td data-label="Statut">${a.en_retard ? `<span class="status st-RETARD">Retour en retard</span> <small>+${duration(a.retard_min)}</small>` : '<span class="status st-EXTERIEUR">À l\'extérieur</span>'}</td></tr>`).join('')}

@@ -246,7 +246,7 @@ export const ACTIONS = {
   UTILISATEUR_CREE: 'Utilisateur créé', UTILISATEUR_MODIFIE: 'Utilisateur modifié', UTILISATEUR_SUPPRIME: 'Utilisateur supprimé', UTILISATEUR_DESACTIVE: 'Utilisateur désactivé',
   OPERATEUR_CREE: 'Opérateur créé', OPERATEUR_MODIFIE: 'Opérateur modifié', OPERATEUR_SUPPRIME: 'Opérateur supprimé', OPERATEUR_DESACTIVE: 'Opérateur désactivé',
   OPERATEUR_PHOTO: 'Photo opérateur', OPERATEUR_QR_REGENERE: 'QR code régénéré', OPERATEURS_IMPORTES: 'Import opérateurs',
-  EQUIPE_CREEE: 'Équipe créée', EQUIPE_MODIFIEE: 'Équipe modifiée', EQUIPE_SUPPRIME: 'Équipe supprimée', EQUIPE_DESACTIVE: 'Équipe désactivée',
+  EQUIPE_CREEE: 'Affectation créée', EQUIPE_MODIFIEE: 'Affectation modifiée', EQUIPE_SUPPRIME: 'Affectation supprimée', EQUIPE_DESACTIVE: 'Affectation désactivée',
   SERVICE_CREE: 'Service créé', SERVICE_MODIFIE: 'Service modifié', SERVICE_SUPPRIME: 'Service supprimé', SERVICE_DESACTIVE: 'Service désactivé',
   POSTE_CREE: 'Poste créé', POSTE_MODIFIE: 'Poste modifié', POSTE_SUPPRIME: 'Poste supprimé', POSTE_DESACTIVE: 'Poste désactivé',
   POSTE_GARDE_CHOISI: 'Poste de garde sélectionné', PARAMETRES_MODIFIES: 'Paramètres modifiés', SAUVEGARDE_CREEE: 'Sauvegarde créée',

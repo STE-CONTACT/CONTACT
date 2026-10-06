@@ -26,7 +26,7 @@ module.exports = function authorizationRoutes(ctx) {
     const rows = authz.exportRows(req.user, req.query);
     const csv = toCsv([
       { label: 'Numéro', key: 'numero' }, { label: 'Matricule', key: 'matricule' }, { label: 'Nom', key: 'emp_nom' }, { label: 'Prénom', key: 'emp_prenom' },
-      { label: 'Service', key: 'service' }, { label: 'Équipe', key: 'equipe' }, { label: 'Poste', key: 'poste_nom' },
+      { label: 'Service', key: 'service' }, { label: 'Affectation', key: 'equipe' }, { label: 'Poste', key: 'poste_nom' },
       { label: 'Date sortie', value: (r) => r.date_sortie.split('-').reverse().join('/') },
       { label: 'Sortie prévue', key: 'heure_sortie_prevue' }, { label: 'Retour prévu', value: (r) => (r.avec_retour ? `${r.heure_retour_prevue}${r.retour_lendemain ? ' (J+1)' : ''}` : 'Sans retour') },
       { label: 'Type', key: 'type_sortie_label' }, { label: 'Motif', key: 'motif' }, { label: 'Statut', value: (r) => STATUT_LABELS[r.statut] },

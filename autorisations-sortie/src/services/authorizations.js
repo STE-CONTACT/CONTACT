@@ -40,7 +40,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
   const tz = () => settings.tz();
 
   // ---------------------------------------------------------------- périmètre
-  /** Équipes dont l'utilisateur (chef) est responsable. */
+  /** Affectations (table teams) dont l'utilisateur (chef / responsable) a la charge. */
   function chefTeamIds(user) {
     const ids = db.all('SELECT id FROM teams WHERE chef_equipe_id = ?', user.id).map((r) => r.id);
     if (user.team_id && !ids.includes(user.team_id)) ids.push(user.team_id);
@@ -234,7 +234,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       excludeUserId: user.id,
       type: 'DEMANDE_CREEE',
       titre: 'Nouvelle demande de sortie',
-      message: `${a.matricule} — ${a.emp_prenom} ${a.emp_nom} (${a.equipe || 'sans équipe'}) : sortie ${fmtWindow(a)}. Demandée par ${a.createur}.`,
+      message: `${a.matricule} — ${a.emp_prenom} ${a.emp_nom} (${a.equipe || 'sans affectation'}) : sortie ${fmtWindow(a)}. Demandée par ${a.createur}.`,
       entityType: 'authorization', entityId: a.id,
     });
   }
@@ -245,7 +245,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       userIds: notifier.recipientsByRole('gardien'),
       type: 'AUTORISATION_VALIDEE',
       titre: `Sortie autorisée — MAT. ${a.matricule}`,
-      message: `${a.emp_prenom} ${a.emp_nom} (${a.service || ''} — ${a.equipe || 'sans équipe'}) : sortie ${fmtWindow(a)}. Autorisée par ${a.valideur || a.createur}.`,
+      message: `${a.emp_prenom} ${a.emp_nom} (${a.equipe || 'sans affectation'}) : sortie ${fmtWindow(a)}. Autorisée par ${a.valideur || a.createur}.`,
       entityType: 'authorization', entityId: a.id,
     });
   }
@@ -263,7 +263,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const emp = db.get('SELECT * FROM employees WHERE id = ?', employeeId);
     if (!emp) throw badRequest('Opérateur introuvable');
     if (!emp.actif) throw badRequest('Cet opérateur est inactif');
-    if (!canManageEmployee(user, emp)) throw forbidden("Cet opérateur n'appartient pas à votre équipe");
+    if (!canManageEmployee(user, emp)) throw forbidden("Cette personne ne fait pas partie de votre affectation");
     const fields = validateFields(input);
     const submit = input.submit !== false;
     // Par défaut, l'autorisation du chef est valable immédiatement (pas de validation RH).

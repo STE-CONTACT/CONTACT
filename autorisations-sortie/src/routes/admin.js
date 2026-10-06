@@ -79,7 +79,7 @@ module.exports = function adminRoutes(ctx) {
     if (!/^[a-z0-9._-]{3,50}$/.test(u.username)) throw badRequest("Identifiant invalide (3 à 50 caractères : lettres, chiffres, . _ -)");
     if (!ROLES.includes(u.role)) throw badRequest('Rôle invalide');
     if (u.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)) throw badRequest('Email invalide');
-    if (u.team_id && !db.get('SELECT id FROM teams WHERE id = ?', u.team_id)) throw badRequest('Équipe inconnue');
+    if (u.team_id && !db.get('SELECT id FROM teams WHERE id = ?', u.team_id)) throw badRequest('Affectation inconnue');
     return u;
   }
 
@@ -276,7 +276,7 @@ module.exports = function adminRoutes(ctx) {
         return Number(r.lastInsertRowid);
       });
       res.status(201).json({ ...db.get(`${TEAM_SELECT} WHERE t.id = ?`, id) });
-    } catch (e) { if (isUniqueError(e)) throw conflict('Cette équipe existe déjà'); throw e; }
+    } catch (e) { if (isUniqueError(e)) throw conflict('Cette affectation existe déjà'); throw e; }
   });
   router.put('/teams/:id', admin, (req, res) => {
     const id = Number(req.params.id);
@@ -288,7 +288,7 @@ module.exports = function adminRoutes(ctx) {
         db.run('UPDATE teams SET nom=?, chef_equipe_id=?, shift_id=?, service_id=?, actif=? WHERE id=?', t.nom, t.chef_equipe_id, t.shift_id, t.service_id, t.actif, id);
         audit.log({ user: req.user, action: 'EQUIPE_MODIFIEE', entityType: 'team', entityId: id, before, after: t, req });
       });
-    } catch (e) { if (isUniqueError(e)) throw conflict('Cette équipe existe déjà'); throw e; }
+    } catch (e) { if (isUniqueError(e)) throw conflict('Cette affectation existe déjà'); throw e; }
     res.json({ ...db.get(`${TEAM_SELECT} WHERE t.id = ?`, id) });
   });
   router.delete('/teams/:id', admin, (req, res) => res.json(deleteOrDeactivate('teams', Number(req.params.id), req, req.user, 'team', 'EQUIPE')));
@@ -327,7 +327,7 @@ module.exports = function adminRoutes(ctx) {
   function getEmployeeChecked(user, id) {
     const e = db.get(`${EMP_SELECT} WHERE e.id = ?`, id);
     if (!e) throw notFound('Opérateur introuvable');
-    if (user.role === 'chef' && !authz.canManageEmployee(user, e)) throw forbidden("Cet opérateur n'appartient pas à votre équipe");
+    if (user.role === 'chef' && !authz.canManageEmployee(user, e)) throw forbidden("Cette personne ne fait pas partie de votre affectation");
     return e;
   }
 
@@ -423,14 +423,14 @@ module.exports = function adminRoutes(ctx) {
     res.json({ ok: true });
   });
 
-  /** Import CSV : matricule;nom;prenom;service;equipe;poste;telephone (mise à jour si le matricule existe). */
+  /** Import CSV : matricule;nom;prenom;service;affectation;poste;telephone (mise à jour si le matricule existe). */
   router.post('/employees/import', admin, (req, res) => {
     const rows = parseCsv(req.body.csv);
     if (!rows.length) throw badRequest('Fichier vide');
     const header = rows[0].map((h) => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
     const hasHeader = header.includes('matricule');
     const idx = (name, def) => (hasHeader ? header.indexOf(name) : def);
-    const cols = { matricule: idx('matricule', 0), nom: idx('nom', 1), prenom: idx('prenom', 2), service: idx('service', 3), equipe: idx('equipe', 4), poste: idx('poste', 5), telephone: idx('telephone', 6) };
+    const cols = { matricule: idx('matricule', 0), nom: idx('nom', 1), prenom: idx('prenom', 2), service: idx('service', 3), equipe: hasHeader && header.includes('affectation') ? header.indexOf('affectation') : idx('equipe', 4), poste: idx('poste', 5), telephone: idx('telephone', 6) };
     const report = { created: 0, updated: 0, errors: [] };
     const now = clock.nowIso();
     const lookupOrCreate = (table, nom) => {

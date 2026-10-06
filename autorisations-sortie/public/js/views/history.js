@@ -28,7 +28,7 @@ export async function render(el, { advanced }) {
         <div class="field"><label>Recherche libre</label><input type="search" data-f="q" placeholder="Matricule, nom, prénom, n°"></div>
         <div class="field"><label>Statut</label><select data-f="statut">${selectOptions(Object.entries(STATUTS).map(([id, nom]) => ({ id, nom })), f.statut, { empty: 'Tous' })}</select></div>
         <div class="field"><label>Type de sortie</label><select data-f="type_sortie">${selectOptions(Object.entries(state.settings.types_sortie).map(([id, nom]) => ({ id, nom })), '', { empty: 'Tous' })}</select></div>
-        <div class="field"><label>Équipe</label><select data-f="team_id">${selectOptions(teams, '', { empty: 'Toutes' })}</select></div>
+        <div class="field"><label>Affectation</label><select data-f="team_id">${selectOptions(teams, '', { empty: 'Toutes' })}</select></div>
       </div>
       <details ${advanced ? 'open' : ''}><summary class="muted" style="cursor:pointer;margin-bottom:10px">Plus de critères</summary>
         <div class="form-grid">
@@ -83,7 +83,7 @@ export async function renderReport(el) {
   el.innerHTML = `<div class="page-head"><div><h1>Rapport Excel de suivi</h1>
       <p>Fichier Excel présentable : liste détaillée des sorties (heures prévues et réelles, retours, retards) et une feuille de synthèse.</p></div></div>
     <div class="card">
-      <div class="field"><label>Équipe</label><select id="r-team" style="max-width:320px">${selectOptions(teams, '', { empty: 'Toutes les équipes' })}</select></div>
+      <div class="field"><label>Affectation</label><select id="r-team" style="max-width:320px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select></div>
       <div class="r-grid">
         <button class="btn btn-success btn-lg" data-p="aujourdhui">${icon('download')} Aujourd'hui</button>
         <button class="btn btn-success btn-lg" data-p="hier">${icon('download')} Hier</button>

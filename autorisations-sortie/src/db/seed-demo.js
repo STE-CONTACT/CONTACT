@@ -53,10 +53,10 @@ function addTeam(nom, chef, shiftName, service) {
   return Number(db.run('INSERT INTO teams (nom, chef_equipe_id, shift_id, service_id, actif, created_at) VALUES (?,?,?,?,1,?)',
     nom, chef, shift[shiftName], serviceIds[service], nowIso).lastInsertRowid);
 }
-const teamA = addTeam('Équipe A', chefA, 'Poste 1', 'Production');
-const teamB = addTeam('Équipe B', chefB, 'Poste 3', 'Production');
-const teamC = addTeam('Équipe C', chefC, 'Poste 2', 'Production');
-const teamM = addTeam('Maintenance 1', chefA, 'Poste 1', 'Maintenance');
+const teamA = addTeam('Injection', chefA, 'Poste 1', 'Production');
+const teamB = addTeam('Production', chefB, 'Poste 3', 'Production');
+const teamC = addTeam('Assemblage', chefC, 'Poste 2', 'Production');
+const teamM = addTeam('Maintenance', chefA, 'Poste 1', 'Maintenance');
 db.run('UPDATE users SET team_id = ? WHERE id = ?', teamA, chefA);
 db.run('UPDATE users SET team_id = ? WHERE id = ?', teamB, chefB);
 db.run('UPDATE users SET team_id = ? WHERE id = ?', teamC, chefC);
@@ -192,9 +192,9 @@ console.log(`Données de démonstration créées : ${employees.length} opérateu
 console.log('');
 console.log('Comptes de démonstration :');
 console.log(`  admin          / ${ADMIN_PASSWORD}   (Administrateur)`);
-console.log(`  chef.karim     / ${DEMO_PASSWORD}    (Chef d'équipe — Équipe B, poste 23:00–07:00)`);
-console.log(`  chef.ahmed     / ${DEMO_PASSWORD}    (Chef d'équipe — Équipe A + Maintenance 1)`);
-console.log(`  chef.sami      / ${DEMO_PASSWORD}    (Chef d'équipe — Équipe C)`);
+console.log(`  chef.karim     / ${DEMO_PASSWORD}    (Chef d'équipe — Production, poste 23:00–07:00)`);
+console.log(`  chef.ahmed     / ${DEMO_PASSWORD}    (Chef d'équipe — Injection + Maintenance)`);
+console.log(`  chef.sami      / ${DEMO_PASSWORD}    (Chef d'équipe — Assemblage)`);
 console.log(`  rh.leila       / ${DEMO_PASSWORD}    (RH / Responsable)`);
 console.log(`  gardien.ali    / ${DEMO_PASSWORD}    (Gardien — Poste de garde)`);
 close();

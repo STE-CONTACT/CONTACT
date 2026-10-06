@@ -1,4 +1,4 @@
-// Administration : utilisateurs, opérateurs, matricules/QR, équipes, services, horaires, journal d'audit, paramètres.
+// Administration : utilisateurs, opérateurs, matricules/QR, affectations, services, horaires, journal d'audit, paramètres.
 import { get, post, put, del, qs } from '../api.js';
 import { state } from '../state.js';
 import {
@@ -74,16 +74,16 @@ export async function renderUsers(el) {
     { name: 'team_id', label: "Équipe (chef d'équipe)", type: 'select', options: teams, empty: '—' },
     { name: 'poste_garde', label: 'Poste de garde (gardien)', type: 'select', options: postes, empty: '—' },
     ...(isNew ? [{ name: 'password', label: 'Mot de passe initial', type: 'password', autocomplete: 'new-password', hint: 'Laisser vide pour générer un mot de passe temporaire.' }] : []),
-    { name: 'droit_toutes_equipes', label: 'Droit spécial : créer des autorisations pour toutes les équipes', type: 'checkbox' },
+    { name: 'droit_toutes_equipes', label: 'Droit spécial : autoriser le personnel de toutes les affectations', type: 'checkbox' },
     { name: 'actif', label: 'Compte actif', type: 'checkbox', default: true },
   ];
   const load = async () => {
     const users = await get('/api/users');
     el.innerHTML = `${pageHead('Utilisateurs', 'Comptes et rôles : administrateur, chef d\'équipe, RH / responsable, gardien.', `<button class="btn btn-primary" data-new>${icon('plus')} Nouvel utilisateur</button>`)}
-      <div class="card"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>Équipe / poste</th><th>Dernière connexion</th><th>État</th><th></th></tr></thead><tbody>
-      ${users.map((u) => `<tr><td class="main-cell"><strong>${esc(u.prenom)} ${esc(u.nom)}</strong>${u.droit_toutes_equipes ? ' <span class="tag">toutes équipes</span>' : ''}</td>
+      <div class="card"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>Affectation / poste</th><th>Dernière connexion</th><th>État</th><th></th></tr></thead><tbody>
+      ${users.map((u) => `<tr><td class="main-cell"><strong>${esc(u.prenom)} ${esc(u.nom)}</strong>${u.droit_toutes_equipes ? ' <span class="tag">toutes affectations</span>' : ''}</td>
         <td data-label="Identifiant" class="mono">${esc(u.username)}</td><td data-label="Rôle">${esc(state.settings.roles[u.role])}</td>
-        <td data-label="Équipe">${esc(u.equipe || u.poste_garde || '—')}</td><td data-label="Connexion">${u.last_login_at ? fmtDateTime(u.last_login_at) : '—'}</td>
+        <td data-label="Affectation">${esc(u.equipe || u.poste_garde || '—')}</td><td data-label="Connexion">${u.last_login_at ? fmtDateTime(u.last_login_at) : '—'}</td>
         <td data-label="État">${yesNo(u.actif)}${u.locked ? ' <span class="tag tag-red">verrouillé</span>' : ''}${u.must_change_password ? ' <span class="tag tag-warn">mdp à changer</span>' : ''}</td>
         <td class="right nowrap"><button class="btn btn-sm" data-edit="${u.id}">${icon('edit')}</button> <button class="btn btn-sm" data-reset="${u.id}" title="Réinitialiser le mot de passe">${icon('key')}</button>
           ${u.locked ? `<button class="btn btn-sm" data-unlock="${u.id}">Déverrouiller</button>` : ''} ${u.id !== state.user.id ? `<button class="btn btn-sm" data-del="${u.id}">${icon('trash')}</button>` : ''}</td></tr>`).join('')}
@@ -113,16 +113,16 @@ export async function renderEmployees(el) {
   const fields = [
     { name: 'matricule', label: 'Matricule', required: true }, { name: 'nom', label: 'Nom', required: true }, { name: 'prenom', label: 'Prénom', required: true },
     { name: 'service_id', label: 'Service', type: 'select', options: services, empty: '—' },
-    { name: 'team_id', label: 'Équipe', type: 'select', options: teams, empty: '—' },
+    { name: 'team_id', label: 'Affectation', type: 'select', options: teams, empty: '—' },
     { name: 'shift_id', label: 'Poste', type: 'select', options: shifts, empty: '—', optionLabel: shiftLabel },
     { name: 'telephone', label: 'Téléphone', type: 'tel' },
     { name: 'actif', label: 'Opérateur actif', type: 'checkbox', default: true },
   ];
   const f = { q: '', team_id: '', service_id: '', actif: '' };
-  el.innerHTML = `${pageHead('Opérateurs', 'Ouvriers et opérateurs (sans compte utilisateur) : matricule, service, équipe, poste, photo.', `<div class="row"><a class="btn" href="#/admin/matricules">${icon('qr')} Badges QR / import</a><button class="btn btn-primary" data-new>${icon('plus')} Nouvel opérateur</button></div>`)}
+  el.innerHTML = `${pageHead('Opérateurs', 'Ouvriers et opérateurs (sans compte utilisateur) : matricule, affectation, service, poste, photo.', `<div class="row"><a class="btn" href="#/admin/matricules">${icon('qr')} Badges QR / import</a><button class="btn btn-primary" data-new>${icon('plus')} Nouvel opérateur</button></div>`)}
     <div class="card"><div class="row mb">
       <input type="search" id="e-q" placeholder="Matricule, nom, prénom" style="max-width:280px">
-      <select id="e-team" style="max-width:200px">${selectOptions(teams, '', { empty: 'Toutes les équipes' })}</select>
+      <select id="e-team" style="max-width:200px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select>
       <select id="e-service" style="max-width:200px">${selectOptions(services, '', { empty: 'Tous les services' })}</select>
       <select id="e-actif" style="max-width:160px"><option value="">Actifs et inactifs</option><option value="1">Actifs</option><option value="0">Inactifs</option></select>
       <span class="muted" id="e-count"></span></div><div id="e-body"></div></div>`;
@@ -131,9 +131,9 @@ export async function renderEmployees(el) {
   const load = async () => {
     list = await get(`/api/employees${qs({ ...f, limit: 1000 })}`);
     el.querySelector('#e-count').textContent = `${list.length} opérateur(s)`;
-    body.innerHTML = `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Service</th><th>Équipe</th><th>Poste</th><th>Téléphone</th><th>État</th><th></th></tr></thead><tbody>
+    body.innerHTML = `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Service</th><th>Affectation</th><th>Poste</th><th>Téléphone</th><th>État</th><th></th></tr></thead><tbody>
       ${list.map((e) => `<tr><td class="main-cell"><div class="emp">${avatar(e.id, e.photo, e.prenom, e.nom)}<div><div class="name"><span class="mat">${esc(e.matricule)}</span> ${esc(e.nom)} ${esc(e.prenom)}</div></div></div></td>
-        <td data-label="Service">${esc(e.service || '—')}</td><td data-label="Équipe">${esc(e.equipe || '—')}</td><td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td>
+        <td data-label="Service">${esc(e.service || '—')}</td><td data-label="Affectation">${esc(e.equipe || '—')}</td><td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td>
         <td data-label="Tél.">${esc(e.telephone || '')}</td><td data-label="État">${yesNo(e.actif)}</td>
         <td class="right nowrap"><button class="btn btn-sm" data-edit="${e.id}">${icon('edit')}</button> <button class="btn btn-sm" data-photo="${e.id}" title="Photo">${icon('upload')}</button> <button class="btn btn-sm" data-qr="${e.id}" title="QR code">${icon('qr')}</button> <button class="btn btn-sm" data-del="${e.id}">${icon('trash')}</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucun opérateur</td></tr>'}
       </tbody></table></div>`;
@@ -182,7 +182,7 @@ function qrModal(e) {
 export async function renderMatricules(el) {
   const teams = await get('/api/teams');
   el.innerHTML = `${pageHead('Matricules & QR codes', 'Badges QR à imprimer pour l\'identification rapide au poste de garde, et import des opérateurs.', `<button class="btn" data-import>${icon('upload')} Importer (CSV)</button>`)}
-    <div class="card no-print"><div class="row"><select id="m-team" style="max-width:240px">${selectOptions(teams, '', { empty: 'Toutes les équipes' })}</select>
+    <div class="card no-print"><div class="row"><select id="m-team" style="max-width:240px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select>
       <input type="search" id="m-q" placeholder="Matricule ou nom" style="max-width:260px"><button class="btn btn-primary" id="m-print">${icon('print')} Imprimer les badges</button></div></div>
     <div class="card"><div class="badges" id="m-body"></div></div>`;
   const body = el.querySelector('#m-body');
@@ -197,11 +197,11 @@ export async function renderMatricules(el) {
   el.querySelector('#m-print').onclick = () => window.print();
   el.querySelector('[data-import]').onclick = () => modal({
     title: 'Importer des opérateurs (CSV)', wide: true,
-    body: `<p>Colonnes (séparateur <code>;</code> ou <code>,</code>) : <code>matricule;nom;prenom;service;equipe;poste;telephone</code>.
-      Les services et équipes inconnus sont créés automatiquement. Le poste doit correspondre au nom d'un poste existant (ex. « Poste 3 »).
+    body: `<p>Colonnes (séparateur <code>;</code> ou <code>,</code>) : <code>matricule;nom;prenom;service;affectation;poste;telephone</code>.
+      Les services et affectations inconnus sont créés automatiquement. Le poste doit correspondre au nom d'un poste existant (ex. « Poste 3 »).
       Un matricule existant est mis à jour.</p>
       <div class="field"><input type="file" id="imp-file" accept=".csv,text/csv"></div>
-      <div class="field"><label>Ou coller le contenu</label><textarea id="imp-text" rows="8" placeholder="matricule;nom;prenom;service;equipe;poste&#10;4587;BEN ALI;Mohamed;Production;Équipe B;Poste 3"></textarea></div>`,
+      <div class="field"><label>Ou coller le contenu</label><textarea id="imp-text" rows="8" placeholder="matricule;nom;prenom;service;affectation;poste&#10;4587;BEN ALI;Mohamed;Production;Injection;Poste 3"></textarea></div>`,
     onOpen: (b) => { b.querySelector('#imp-file').onchange = async (e) => { const file = e.target.files[0]; if (file) b.querySelector('#imp-text').value = await file.text(); }; },
     actions: [{ label: 'Annuler', value: null }, {
       label: 'Importer', class: 'btn-primary',
@@ -221,23 +221,23 @@ export async function renderTeams(el) {
   const [shifts, services, users] = await Promise.all([get('/api/shifts'), get('/api/services'), get('/api/users')]);
   const chefs = users.filter((u) => u.role === 'chef' && u.actif);
   const fields = [
-    { name: 'nom', label: "Nom de l'équipe", required: true, placeholder: 'Équipe A' },
-    { name: 'chef_equipe_id', label: "Chef d'équipe", type: 'select', options: chefs, empty: '—', optionLabel: (u) => `${u.prenom} ${u.nom}` },
+    { name: 'nom', label: "Nom de l'affectation", required: true, placeholder: 'Injection, Assemblage…' },
+    { name: 'chef_equipe_id', label: 'Chef / responsable', type: 'select', options: chefs, empty: '—', optionLabel: (u) => `${u.prenom} ${u.nom}` },
     { name: 'shift_id', label: 'Poste', type: 'select', options: shifts, empty: '—', optionLabel: (s) => `${s.nom} (${s.heure_debut}–${s.heure_fin})` },
     { name: 'service_id', label: 'Service', type: 'select', options: services, empty: '—' },
-    { name: 'actif', label: 'Équipe active', type: 'checkbox', default: true },
+    { name: 'actif', label: 'Affectation active', type: 'checkbox', default: true },
   ];
   const load = async () => {
     const teams = await get('/api/teams');
-    el.innerHTML = `${pageHead('Équipes', 'Chaque équipe est associée à un chef d\'équipe et à un poste.', `<button class="btn btn-primary" data-new>${icon('plus')} Nouvelle équipe</button>`)}
-      <div class="card"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Équipe</th><th>Chef</th><th>Poste</th><th>Service</th><th>Opérateurs</th><th>État</th><th></th></tr></thead><tbody>
+    el.innerHTML = `${pageHead('Affectations', 'Injection, Assemblage, Production… Chaque affectation a un chef / responsable qui autorise la sortie de son personnel.', `<button class="btn btn-primary" data-new>${icon('plus')} Nouvelle affectation</button>`)}
+      <div class="card"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Affectation</th><th>Chef / responsable</th><th>Poste</th><th>Service</th><th>Opérateurs</th><th>État</th><th></th></tr></thead><tbody>
       ${teams.map((t) => `<tr><td class="main-cell"><strong>${esc(t.nom)}</strong></td><td data-label="Chef">${esc(t.chef || '—')}</td><td data-label="Poste">${posteLabel(t.poste_nom, t.heure_debut, t.heure_fin)}</td>
         <td data-label="Service">${esc(t.service || '—')}</td><td data-label="Opérateurs">${t.nb_operateurs}</td><td data-label="État">${yesNo(t.actif)}</td>
-        <td class="right nowrap"><button class="btn btn-sm" data-edit="${t.id}">${icon('edit')}</button> <button class="btn btn-sm" data-del="${t.id}">${icon('trash')}</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucune équipe</td></tr>'}
+        <td class="right nowrap"><button class="btn btn-sm" data-edit="${t.id}">${icon('edit')}</button> <button class="btn btn-sm" data-del="${t.id}">${icon('trash')}</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucune affectation</td></tr>'}
       </tbody></table></div></div>`;
-    el.querySelector('[data-new]').onclick = () => formModal('Nouvelle équipe', fields, { actif: true }, async (d) => { await post('/api/teams', d); toast('Équipe créée', 'success'); load(); });
-    el.querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => { const t = teams.find((x) => x.id === Number(b.dataset.edit)); formModal(`Modifier ${t.nom}`, fields, t, async (d) => { await put(`/api/teams/${t.id}`, d); toast('Équipe modifiée', 'success'); load(); }); }; });
-    el.querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { try { if (await removeItem(`/api/teams/${b.dataset.del}`, 'cette équipe')) load(); } catch (e) { toastError(e); } }; });
+    el.querySelector('[data-new]').onclick = () => formModal('Nouvelle affectation', fields, { actif: true }, async (d) => { await post('/api/teams', d); toast('Affectation créée', 'success'); load(); });
+    el.querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => { const t = teams.find((x) => x.id === Number(b.dataset.edit)); formModal(`Modifier ${t.nom}`, fields, t, async (d) => { await put(`/api/teams/${t.id}`, d); toast('Affectation modifiée', 'success'); load(); }); }; });
+    el.querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { try { if (await removeItem(`/api/teams/${b.dataset.del}`, 'cette affectation')) load(); } catch (e) { toastError(e); } }; });
   };
   await load();
 }
@@ -270,7 +270,7 @@ export async function renderShifts(el) {
   ];
   const load = async () => {
     const list = await get('/api/shifts');
-    el.innerHTML = `${pageHead('Horaires & postes', 'Postes des équipes en 3×8 et horaire administratif.', `<button class="btn btn-primary" data-new>${icon('plus')} Nouveau poste</button>`)}
+    el.innerHTML = `${pageHead('Horaires & postes', 'Postes en 3×8 et horaire administratif.', `<button class="btn btn-primary" data-new>${icon('plus')} Nouveau poste</button>`)}
       <div class="info-box mb">Les horaires servent à décrire l'organisation du travail. <strong>Ils ne bloquent jamais l'application</strong> : une autorisation peut être créée, validée et utilisée à toute heure, y compris la nuit.</div>
       <div class="card"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Poste</th><th>Type</th><th>Horaires</th><th>Pause</th><th>État</th><th></th></tr></thead><tbody>
       ${list.map((s) => `<tr><td class="main-cell"><strong>${esc(s.nom)}</strong></td><td data-label="Type">${s.type === 'administratif' ? 'Administratif' : 'Opérateurs'}</td>
@@ -293,7 +293,7 @@ export async function renderAudit(el) {
     <div class="card"><div class="form-grid">
       <div class="field"><label>Utilisateur</label><input type="search" data-f="user"></div>
       <div class="field"><label>Action</label><select data-f="action">${selectOptions(actions.map((a) => ({ id: a, nom: actionLabel(a) })), '', { empty: 'Toutes' })}</select></div>
-      <div class="field"><label>Objet</label><select data-f="entity_type"><option value="">Tous</option><option value="authorization">Autorisation</option><option value="user">Utilisateur</option><option value="employee">Opérateur</option><option value="team">Équipe</option><option value="service">Service</option><option value="shift">Poste</option><option value="settings">Paramètres</option><option value="backup">Sauvegarde</option></select></div>
+      <div class="field"><label>Objet</label><select data-f="entity_type"><option value="">Tous</option><option value="authorization">Autorisation</option><option value="user">Utilisateur</option><option value="employee">Opérateur</option><option value="team">Affectation</option><option value="service">Service</option><option value="shift">Poste</option><option value="settings">Paramètres</option><option value="backup">Sauvegarde</option></select></div>
       <div class="field"><label>Du</label><input type="date" data-f="date_from"></div><div class="field"><label>Au</label><input type="date" data-f="date_to"></div>
     </div><div id="a-body"></div></div>`;
   const body = el.querySelector('#a-body');

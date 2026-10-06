@@ -14,7 +14,7 @@ export async function render(el) {
     const maxTeam = Math.max(1, ...d.byTeam.map((x) => x.n));
     el.innerHTML = `
       <div class="page-head"><div><h1>Aujourd'hui — ${esc(dmy(d.date))}</h1>
-        <p>${isRole('chef') ? 'Périmètre : vos équipes.' : 'Toutes les équipes.'} Mise à jour en temps réel.</p></div>
+        <p>${isRole('chef') ? 'Périmètre : vos affectations.' : 'Toutes les affectations.'} Mise à jour en temps réel.</p></div>
         ${isRole('chef', 'admin') ? `<a class="btn btn-primary btn-lg" href="#/nouvelle">${icon('plus')} Nouvelle autorisation de sortie</a>` : ''}
       </div>
       <div class="kpis">
@@ -58,7 +58,7 @@ export async function render(el) {
           <div class="card-head"><h2>Ce mois-ci</h2></div>
           <h3>Par type de sortie</h3>
           <div class="hbars">${d.byType.map((x) => `<div class="hbar"><span>${esc(x.label)}</span><div class="track"><div style="width:${(x.n / maxType) * 100}%"></div></div><strong class="right">${x.n}</strong></div>`).join('') || '<div class="muted">Aucune donnée</div>'}</div>
-          <h3 class="mt">Par équipe</h3>
+          <h3 class="mt">Par affectation</h3>
           <div class="hbars">${d.byTeam.map((x) => `<div class="hbar"><span>${esc(x.equipe)}</span><div class="track"><div style="width:${(x.n / maxTeam) * 100}%"></div></div><strong class="right">${x.n}</strong></div>`).join('') || '<div class="muted">Aucune donnée</div>'}</div>
         </div>
       </div>

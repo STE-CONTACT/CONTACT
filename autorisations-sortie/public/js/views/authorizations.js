@@ -33,8 +33,8 @@ function renderStep1(el) {
       results.innerHTML = current.length ? current.map((e, i) => `<button type="button" class="result-item" data-i="${i}">
         ${avatar(e.id, e.photo, e.prenom, e.nom)}
         <div class="grow"><div class="name"><span class="mat">${esc(e.matricule)}</span> ${esc(e.nom)} ${esc(e.prenom)}</div>
-        <div class="meta">${esc(e.service || '—')} · ${esc(e.equipe || '—')} · ${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</div></div>
-        ${icon('plus')}</button>`).join('') : `<div class="empty">Aucun opérateur trouvé${isRole('chef') ? ' dans vos équipes' : ''}.</div>`;
+        <div class="meta">${esc(e.equipe || '—')} · ${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</div></div>
+        ${icon('plus')}</button>`).join('') : `<div class="empty">Aucun opérateur trouvé${isRole('chef') ? ' dans vos affectations' : ''}.</div>`;
     } catch (e) { results.innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
   };
   input.addEventListener('input', debounce(search, 200));
@@ -51,7 +51,7 @@ function employeeCard(e) {
       <div><span>Nom</span><strong>${esc(e.nom)}</strong></div>
       <div><span>Prénom</span><strong>${esc(e.prenom)}</strong></div>
       <div><span>Service</span><strong>${esc(e.service || '—')}</strong></div>
-      <div><span>Équipe</span><strong>${esc(e.equipe || '—')}</strong></div>
+      <div><span>Affectation</span><strong>${esc(e.equipe || '—')}</strong></div>
       <div><span>Poste</span><strong>${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</strong></div>
     </div></div>`;
 }
@@ -242,11 +242,11 @@ export async function renderList(el, { mode }) {
 
 export function authorizationTable(items, { decision = false } = {}) {
   return `<div class="table-wrap"><table class="table responsive"><thead><tr>
-    <th>N°</th><th>Opérateur</th><th>Équipe</th><th>Créneau</th><th>Type</th><th>Statut</th><th>Chef d'équipe</th>${decision ? '<th></th>' : ''}</tr></thead><tbody>
+    <th>N°</th><th>Opérateur</th><th>Affectation</th><th>Créneau</th><th>Type</th><th>Statut</th><th>Chef d'équipe</th>${decision ? '<th></th>' : ''}</tr></thead><tbody>
     ${items.map((a) => `<tr class="clickable ${a.en_retard && a.statut === 'SORTIE_EFFECTUEE' ? 'late' : ''}" data-id="${a.id}">
       <td data-label="N°" class="mono nowrap hide-sm">${esc(a.numero)}</td>
       <td data-label="Opérateur" class="main-cell"><div class="emp">${avatar(a.employee_id, a.emp_photo, a.emp_prenom, a.emp_nom)}<div><div class="name"><span class="mat">${esc(a.matricule)}</span> ${esc(a.emp_nom)} ${esc(a.emp_prenom)}</div><div class="meta">${esc(a.service || '')}${a.equipe ? ` · ${esc(a.equipe)}` : ''}</div></div></div></td>
-      <td data-label="Équipe" class="hide-sm">${esc(a.equipe || '—')}</td>
+      <td data-label="Affectation" class="hide-sm">${esc(a.equipe || '—')}</td>
       <td data-label="Créneau" class="nowrap">${windowLabel(a)}</td>
       <td data-label="Type">${esc(a.type_sortie_label)}</td>
       <td data-label="Statut">${statusBadge(a.statut, { a })}</td>
@@ -358,16 +358,16 @@ function detailOf(t) {
 export async function renderTeam(el) {
   const [teams, emps, outside] = await Promise.all([get('/api/teams?mine=1'), get('/api/employees?actif=1'), get('/api/outside')]);
   const outIds = new Set(outside.map((a) => a.employee_id));
-  el.innerHTML = `<div class="page-head"><div><h1>Mon équipe</h1><p>${teams.map((t) => `${esc(t.nom)} — ${esc(t.poste_nom || '')} ${t.heure_debut ? `(${esc(t.heure_debut)}–${esc(t.heure_fin)})` : ''}`).join(' · ') || 'Aucune équipe associée'}</p></div></div>
+  el.innerHTML = `<div class="page-head"><div><h1>Mon personnel</h1><p>${teams.map((t) => `${esc(t.nom)} — ${esc(t.poste_nom || '')} ${t.heure_debut ? `(${esc(t.heure_debut)}–${esc(t.heure_fin)})` : ''}`).join(' · ') || 'Aucune affectation associée'}</p></div></div>
     <div class="card"><div class="row mb"><input type="search" id="t-q" placeholder="Filtrer par matricule ou nom" style="max-width:320px"><span class="muted" id="t-count"></span></div>
-    <div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Service</th><th>Équipe</th><th>Poste</th><th>Situation</th><th></th></tr></thead><tbody id="t-body"></tbody></table></div></div>`;
+    <div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Service</th><th>Affectation</th><th>Poste</th><th>Situation</th><th></th></tr></thead><tbody id="t-body"></tbody></table></div></div>`;
   const draw = (q = '') => {
     const ql = q.toLowerCase();
     const list = emps.filter((e) => !ql || `${e.matricule} ${e.nom} ${e.prenom}`.toLowerCase().includes(ql));
     el.querySelector('#t-count').textContent = `${list.length} opérateur(s)`;
     el.querySelector('#t-body').innerHTML = list.map((e) => `<tr>
       <td class="main-cell"><div class="emp">${avatar(e.id, e.photo, e.prenom, e.nom)}<div><div class="name"><span class="mat">${esc(e.matricule)}</span> ${esc(e.nom)} ${esc(e.prenom)}</div></div></div></td>
-      <td data-label="Service">${esc(e.service || '—')}</td><td data-label="Équipe">${esc(e.equipe || '—')}</td>
+      <td data-label="Service">${esc(e.service || '—')}</td><td data-label="Affectation">${esc(e.equipe || '—')}</td>
       <td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td>
       <td data-label="Situation">${outIds.has(e.id) ? '<span class="status st-EXTERIEUR">À l\'extérieur</span>' : '<span class="muted">Sur site</span>'}</td>
       <td class="right"><a class="btn btn-sm btn-primary" href="#/nouvelle?employee=${e.id}">${icon('plus')} Autorisation</a></td></tr>`).join('') || '<tr><td colspan="6" class="empty">Aucun opérateur</td></tr>';

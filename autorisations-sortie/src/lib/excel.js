@@ -37,7 +37,7 @@ async function buildReport(rows, { entreprise, periode, tz, generePar }) {
     { h: 'Nom', w: 18, v: (a) => a.emp_nom },
     { h: 'Prénom', w: 14, v: (a) => a.emp_prenom },
     { h: 'Service', w: 14, v: (a) => a.service || '' },
-    { h: 'Équipe', w: 13, v: (a) => a.equipe || '' },
+    { h: 'Affectation', w: 14, v: (a) => a.equipe || '' },
     { h: 'Retour', w: 12, v: (a) => (a.avec_retour ? 'Avec retour' : 'Sans retour') },
     { h: 'Motif', w: 26, v: (a) => a.motif },
     { h: 'Sortie prévue', w: 10, v: (a) => a.heure_sortie_prevue },
@@ -130,7 +130,7 @@ async function buildReport(rows, { entreprise, periode, tz, generePar }) {
     for (const a of rows) { const k = key(a) || '—'; m.set(k, (m.get(k) || 0) + 1); }
     return [...m.entries()].sort((x, y) => y[1] - x[1]);
   };
-  block('Par équipe', group((a) => a.equipe));
+  block('Par affectation', group((a) => a.equipe));
   block('Par service', group((a) => a.service));
   block('Par motif', group((a) => a.motif));
   block('Par chef / responsable', group((a) => a.valideur || a.createur));
