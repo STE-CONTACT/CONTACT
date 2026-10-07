@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const os = require('node:os');
+const { lanAddresses } = require('../lib/network');
 const express = require('express');
 const QRCode = require('qrcode');
 const clock = require('../lib/clock');
@@ -58,7 +58,7 @@ module.exports = function adminRoutes(ctx) {
     let host = req.get('host') || 'localhost';
     if (/^(localhost|127\.0\.0\.1|\[::1\])(:|$)/i.test(host)) {
       const port = host.includes(':') ? host.slice(host.lastIndexOf(':')) : '';
-      const lan = Object.values(os.networkInterfaces()).flat().find((a) => a && a.family === 'IPv4' && !a.internal);
+      const lan = lanAddresses()[0];
       if (lan) host = `${lan.address}${port}`;
     }
     return `${req.protocol}://${host}`;

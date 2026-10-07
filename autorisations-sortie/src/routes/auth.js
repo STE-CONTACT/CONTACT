@@ -6,6 +6,8 @@ const { HttpError, badRequest } = require('../lib/errors');
 const { publicUser, createLoginLimiter } = require('../middleware/auth');
 const { TYPES_SORTIE, ROLE_LABELS } = require('../lib/constants');
 
+const QRCode = require('qrcode');
+const { lanAddresses } = require('../lib/network');
 const APP_VERSION = require('../../package.json').version;
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
@@ -33,8 +35,24 @@ module.exports = function authRoutes(ctx) {
     return { user: publicUser(user), settings: clientSettings(), idle_minutes: auth.idleMinutes(user), server_time: clock.nowIso() };
   }
 
+  /** Adresse à utiliser depuis les téléphones (affichée seulement sur le PC serveur lui-même). */
+  function phoneAddress(req) {
+    const configured = String(settings.get('adresse_application') || '').trim().replace(/\/+$/, '');
+    if (configured) return configured;
+    const lan = lanAddresses()[0];
+    const port = (req.get('host') || '').split(':')[1];
+    return lan ? `${req.protocol}://${lan.address}${port ? `:${port}` : ''}` : null;
+  }
+  const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+
   router.get('/public', (req, res) => {
-    res.json({ entreprise_nom: settings.get('entreprise_nom'), version: APP_VERSION });
+    res.json({ entreprise_nom: settings.get('entreprise_nom'), version: APP_VERSION, adresse_telephone: isLocal(req) ? phoneAddress(req) : undefined });
+  });
+
+  router.get('/phone-qr.svg', async (req, res) => {
+    const addr = isLocal(req) ? phoneAddress(req) : null;
+    if (!addr) throw new HttpError(404, 'Indisponible');
+    res.type('image/svg+xml').set('Cache-Control', 'no-store').send(await QRCode.toString(addr, { type: 'svg', margin: 1 }));
   });
 
   router.post('/login', (req, res) => {

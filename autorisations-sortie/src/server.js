@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
-const os = require('node:os');
+const { lanAddresses } = require('./lib/network');
 const { createApp } = require('./app');
 
 const { app, ctx, close } = createApp();
@@ -28,11 +28,9 @@ server.listen(config.port, config.host, () => {
   log(`Autorisations de sortie — ${config.httpsKey ? 'https' : 'http'}://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${config.port}`);
   // Adresses à saisir sur les téléphones / tablettes connectés au même réseau
   const scheme = config.httpsKey ? 'https' : 'http';
-  for (const list of Object.values(os.networkInterfaces())) {
-    for (const a of list || []) {
-      if (a.family === 'IPv4' && !a.internal) log(`  Accès réseau (téléphones, tablettes) : ${scheme}://${a.address}:${config.port}`);
-    }
-  }
+  const lan = lanAddresses();
+  lan.forEach((a, i) => log(`  ${i === 0 ? 'Adresse pour les TÉLÉPHONES' : 'Autre adresse possible   '} : ${scheme}://${a.address}:${config.port}   (${a.name})`));
+  if (!lan.length) log('  Aucun réseau détecté : les téléphones ne pourront pas se connecter.');
   log(`Base de données : ${config.dbPath} — fuseau : ${ctx.settings.tz()}`);
 });
 

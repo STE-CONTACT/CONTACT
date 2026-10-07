@@ -128,10 +128,12 @@ async function renderLogin(message = '') {
   stopSession();
   let entreprise = '';
   let versionMismatch = false;
+  let phone = null;
   try {
     const pub = await get('/api/auth/public');
     entreprise = pub.entreprise_nom;
     versionMismatch = pub.version !== APP_VERSION;
+    phone = pub.adresse_telephone || null;
   } catch { /* hors ligne */ }
   app.innerHTML = `<div class="login-page"><form class="login-card" autocomplete="on">
     <div class="brand"><div class="logo">${LOGO}</div><div><h1>Autorisations de sortie</h1><p>${esc(entreprise)}</p></div></div>
@@ -141,6 +143,7 @@ async function renderLogin(message = '') {
     <div class="field"><label for="p">Mot de passe</label><input id="p" name="password" type="password" autocomplete="current-password" required></div>
     <button class="btn btn-primary btn-block btn-lg" type="submit">Se connecter</button>
     <div class="login-foot">Accès réservé au personnel autorisé. Toutes les actions sont journalisées.</div>
+    ${phone ? `<div class="phone-box"><img src="/api/auth/phone-qr.svg" alt="QR code"><div><strong>Ouvrir sur un téléphone</strong><br>Même Wi-Fi que ce PC. Scannez ce code avec l'appareil photo, ou tapez :<br><span class="mono">${esc(phone)}</span></div></div>` : ''}
   </form></div>`;
   const form = app.querySelector('form');
   form.addEventListener('submit', async (e) => {

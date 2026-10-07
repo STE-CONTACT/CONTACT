@@ -46,6 +46,8 @@ echo.
 echo  L'application s'ouvre dans le navigateur : http://localhost:3000
 echo  Comptes : admin / Admin@2026!   -   chef.karim, rh.leila, gardien.ali / Demo@2026!
 echo  Pour ARRETER l'application : fermez cette fenetre.
+echo  TELEPHONES : scannez le QR de la page de connexion du PC. Si le telephone n'y arrive pas,
+echo  double-cliquez une fois sur OUVRIR-ACCES-TELEPHONE.bat ^(corrige le pare-feu Windows^).
 echo.
 start "" cmd /c "timeout /t 3 /nobreak >nul & start http://localhost:3000"
 call npm start

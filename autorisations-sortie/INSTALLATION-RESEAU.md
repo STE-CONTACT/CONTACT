@@ -34,6 +34,16 @@ Le principe : **un seul ordinateur** de la société héberge l'application. Tou
 
 ## Étape 3 — Ouvrir le pare-feu Windows
 
+**Le plus simple :** double-cliquez sur **`OUVRIR-ACCES-TELEPHONE.bat`** et acceptez la demande d'administrateur. Ce fichier :
+- supprime les règles qui bloquent Node.js (créées si on a refusé la fenêtre « Autoriser l'accès » de Windows) ;
+- ouvre le port de l'application ;
+- vérifie que l'application est lancée ;
+- affiche l'adresse à taper sur le téléphone.
+
+Ensuite, sur l'écran de connexion du PC, un **QR code « Ouvrir sur un téléphone »** permet d'ouvrir l'application sur le téléphone sans taper l'adresse.
+
+Méthode manuelle :
+
 Les téléphones doivent pouvoir joindre le PC. Dans une invite de commandes **en tant qu'administrateur** :
 
 ```
