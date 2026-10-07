@@ -131,10 +131,22 @@ export async function renderMain(el) {
     history.replaceState(null, '', '#/garde');
     lookup({ qr: `badge=${badge}` });
   }
+  // Écran toujours allumé au poste de garde (si le navigateur le permet : HTTPS ou PC local)
+  let wake = null;
+  const keepAwake = async () => {
+    try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wake = await navigator.wakeLock.request('screen'); } catch { /* non disponible */ }
+  };
+  const onVisible = () => { if (document.visibilityState === 'visible') { keepAwake(); loadBoard(); input.focus(); } };
+  document.addEventListener('visibilitychange', onVisible);
+  keepAwake();
   await loadBoard();
   const off = on('authorization', debounce(loadBoard, 300));
   const timer = setInterval(loadBoard, 30000);
-  return () => { off(); clearInterval(timer); clearTimeout(clearTimer); };
+  return () => {
+    off(); clearInterval(timer); clearTimeout(clearTimer);
+    document.removeEventListener('visibilitychange', onVisible);
+    if (wake) wake.release().catch(() => {});
+  };
 }
 
 // ------------------------------------------------------------------ historique (sorties / retours du jour)

@@ -102,8 +102,8 @@ function createApp(overrides = {}) {
     timers.push(setInterval(() => realtime.heartbeat(), 25000));
     timers.push(setInterval(backupTick, 60000));
     timers.push(setInterval(() => {
-      // Nettoyage des sessions inactives depuis plus de 48 h
-      db.run('DELETE FROM sessions WHERE last_seen_at < ?', new Date(Date.now() - 48 * 3600000).toISOString());
+      // Nettoyage des sessions inactives depuis plus de 31 jours (durée maximale réglable)
+      db.run('DELETE FROM sessions WHERE last_seen_at < ?', new Date(Date.now() - 31 * 24 * 3600000).toISOString());
     }, 3600000));
     authz.expireDue();
   }

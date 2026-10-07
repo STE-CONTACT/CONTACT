@@ -15,8 +15,9 @@ const DEFAULTS = {
   tolerance_sortie_avant_min: 30,
   duree_max_heures: 12,
   delai_creation_max_jours: 30,
-  session_inactivite_min: 20,
-  session_inactivite_gardien_min: 480,
+  // Durées sans activité avant déconnexion (minutes). Par défaut : téléphones toujours connectés.
+  session_inactivite_min: 10080,          // chefs, RH, admin : 7 jours
+  session_inactivite_gardien_min: 43200,  // gardien : « jamais » (30 jours)
   postes_garde: ['Poste de garde principal'],
   pieces_jointes_actives: true,
   // Scan du QR code au poste de garde (caméra) : désactivé tant que la société n'en a pas besoin.
@@ -37,8 +38,8 @@ const RULES = {
   tolerance_sortie_avant_min: (v) => Number.isInteger(v) && v >= 0 && v <= 240,
   duree_max_heures: (v) => Number.isInteger(v) && v >= 1 && v <= 24,
   delai_creation_max_jours: (v) => Number.isInteger(v) && v >= 0 && v <= 365,
-  session_inactivite_min: (v) => Number.isInteger(v) && v >= 5 && v <= 720,
-  session_inactivite_gardien_min: (v) => Number.isInteger(v) && v >= 5 && v <= 1440,
+  session_inactivite_min: (v) => Number.isInteger(v) && v >= 5 && v <= 43200,
+  session_inactivite_gardien_min: (v) => Number.isInteger(v) && v >= 5 && v <= 43200,
   postes_garde: (v) => Array.isArray(v) && v.length > 0 && v.length <= 20 && v.every((x) => typeof x === 'string' && x.trim() && x.length <= 60),
   pieces_jointes_actives: (v) => typeof v === 'boolean',
   scanner_qr_actif: (v) => typeof v === 'boolean',

@@ -33,7 +33,9 @@ function createAuth({ db, settings, config }) {
     const now = clock.nowIso();
     db.run('INSERT INTO sessions (id, user_id, created_at, last_seen_at, ip_address, user_agent) VALUES (?,?,?,?,?,?)',
       sha256(token), user.id, now, now, req.ip, String(req.get('user-agent') || '').slice(0, 200));
-    res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: config.secureCookies, path: '/' });
+    // Cookie persistant : la connexion survit à la fermeture du navigateur du téléphone.
+    // La durée réelle reste contrôlée côté serveur (déconnexion après inactivité réglable).
+    res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: config.secureCookies, path: '/', maxAge: 31 * 24 * 3600000 });
     return token;
   }
 

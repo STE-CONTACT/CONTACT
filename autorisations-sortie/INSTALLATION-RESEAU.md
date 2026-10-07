@@ -98,6 +98,10 @@ L'application s'installe comme une vraie application, avec une icône et en plei
 - **Android (Chrome)** : ouvrez l'adresse, puis menu **⋮ → « Installer l'application »** (ou « Ajouter à l'écran d'accueil »).
 - **iPhone (Safari)** : ouvrez l'adresse, puis bouton **Partager → « Sur l'écran d'accueil »**.
 
+### Rester connecté en permanence
+
+Par défaut, le gardien reste connecté (« Jamais »), et les chefs et le RH restent connectés 7 jours. On règle cela dans **Paramètres → Déconnexion automatique**. Protégez chaque téléphone par un **code de verrouillage**.
+
 ## Étape 6 — Activer les notifications sur chaque téléphone
 
 1. Ouvrez l'application installée et connectez-vous.

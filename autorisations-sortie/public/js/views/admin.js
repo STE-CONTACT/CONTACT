@@ -38,6 +38,12 @@ function formModal(title, fields, values = {}, onSubmit, { wide = false } = {}) 
   });
 }
 
+const DUREES = [[20, '20 minutes'], [60, '1 heure'], [480, '8 heures'], [720, '12 heures'], [1440, '24 heures'], [10080, '7 jours'], [43200, 'Jamais (30 jours)']];
+function dureeOptions(current) {
+  const list = DUREES.some(([v]) => v === current) ? DUREES : [[current, `${current} minutes`], ...DUREES];
+  return list.map(([v, l]) => `<option value="${v}" ${v === current ? 'selected' : ''}>${l}</option>`).join('');
+}
+
 function pageHead(title, desc, btn = '') {
   return `<div class="page-head"><div><h1>${esc(title)}</h1>${desc ? `<p>${desc}</p>` : ''}</div>${btn}</div>`;
 }
@@ -371,8 +377,10 @@ export async function renderSettings(el) {
       </div>
       <div class="card"><h2>Sécurité & notifications</h2>
         <div class="form-grid">
-          <div class="field"><label>Déconnexion après inactivité (min)</label><input type="number" min="5" max="720" name="session_inactivite_min" value="${s.session_inactivite_min}"></div>
-          <div class="field"><label>Inactivité tablette gardien (min)</label><input type="number" min="5" max="1440" name="session_inactivite_gardien_min" value="${s.session_inactivite_gardien_min}"></div>
+          <div class="field"><label>Déconnexion automatique — chefs, RH, admin</label><select name="session_inactivite_min">${dureeOptions(s.session_inactivite_min)}</select></div>
+          <div class="field"><label>Déconnexion automatique — gardien</label><select name="session_inactivite_gardien_min">${dureeOptions(s.session_inactivite_gardien_min)}</select></div>
+        </div>
+        <div class="hint mb">« Jamais (30 jours) » : le téléphone reste connecté. Protégez alors chaque téléphone par un code de verrouillage.
         </div>
         <label class="check"><input type="checkbox" name="notifications_email" ${s.notifications_email ? 'checked' : ''} ${s._info.smtp ? '' : 'disabled'}> Envoyer aussi les notifications par email ${s._info.smtp ? '' : '<small class="muted">(SMTP non configuré)</small>'}</label>
         <p class="muted">Notifications push : ${s._info.push ? 'disponibles (HTTPS requis côté navigateur)' : 'indisponibles'}.</p>

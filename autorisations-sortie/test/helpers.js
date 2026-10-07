@@ -14,7 +14,7 @@ async function startServer({ validationRh = true } = {}) {
   process.env.ADMIN_PASSWORD = PASSWORD;
   const { app, ctx, close } = createApp({ dataDir, startJobs: false, quiet: true });
   const { db } = ctx;
-  ctx.settings.update({ fuseau_horaire: 'Africa/Tunis', validation_rh_requise: validationRh });
+  ctx.settings.update({ fuseau_horaire: 'Africa/Tunis', validation_rh_requise: validationRh, session_inactivite_min: 20, session_inactivite_gardien_min: 480 });
   db.run('UPDATE users SET must_change_password = 0 WHERE username = ?', 'admin');
 
   const now = new Date().toISOString();

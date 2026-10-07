@@ -377,6 +377,15 @@ export function updateBell() {
 }
 on('unread-changed', refreshUnread);
 
+// Retour sur l'application (téléphone rallumé, onglet réaffiché) : reconnexion et mise à jour immédiates.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !state.user) return;
+  if (!events || events.readyState === EventSource.CLOSED) connectEvents();
+  refreshUnread();
+  refreshCounts();
+  emit('authorization', { reconnect: true });
+});
+
 let panel = null;
 function closeNotifPanel() { if (panel) { panel.remove(); panel = null; } }
 async function toggleNotifPanel(e) {
