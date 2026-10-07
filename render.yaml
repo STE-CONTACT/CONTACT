@@ -1,0 +1,30 @@
+# Configuration de mise en ligne sur Render (https://render.com) — « New + » → « Blueprint ».
+# L'application est dans le dossier autorisations-sortie/ ; les données sont sur un disque permanent.
+services:
+  - type: web
+    name: autorisations-sortie
+    runtime: node
+    rootDir: autorisations-sortie
+    plan: starter            # toujours allumé (l'offre gratuite se met en veille : ne convient pas au poste de garde)
+    region: frankfurt        # la plus proche de la Tunisie
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/auth/public
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SECURE_COOKIES
+        value: "1"
+      - key: TZ_ENTREPRISE
+        value: Africa/Tunis
+      - key: ADMIN_PASSWORD   # demandé lors de la création (mot de passe du compte « admin »)
+        sync: false
+    disk:
+      name: donnees
+      mountPath: /var/data
+      sizeGB: 1

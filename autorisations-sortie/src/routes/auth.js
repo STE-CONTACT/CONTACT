@@ -43,7 +43,8 @@ module.exports = function authRoutes(ctx) {
     const port = (req.get('host') || '').split(':')[1];
     return lan ? `${req.protocol}://${lan.address}${port ? `:${port}` : ''}` : null;
   }
-  const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+  // Seulement sur le PC serveur lui-même (jamais derrière un hébergeur / reverse proxy).
+  const isLocal = (req) => !ctx.config.trustProxy && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
 
   router.get('/public', (req, res) => {
     res.json({ entreprise_nom: settings.get('entreprise_nom'), version: APP_VERSION, adresse_telephone: isLocal(req) ? phoneAddress(req) : undefined });
