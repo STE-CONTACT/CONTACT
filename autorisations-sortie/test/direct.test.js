@@ -114,3 +114,18 @@ test('Le RH peut aussi donner une autorisation (tout le personnel), valable imm�
   // Le gardien ne peut toujours pas créer d'autorisation
   assert.equal((await gardien.post('/api/authorizations', { employee_id: S.ids.ines })).status, 403);
 });
+
+test('Réglage « Jamais » : toujours connecté, même après 60 jours sans activité', async () => {
+  S.ctx.settings.update({ session_inactivite_gardien_min: 0, session_inactivite_min: 0 });
+  at('2026-10-10', '08:00');
+  const g = client(S.base); await g.login('gardien');
+  const me = await g.get('/api/auth/me');
+  assert.match(me.headers.get('set-cookie'), /Max-Age=34560000/, 'cookie renouvelé pour 400 jours');
+  clock.set(tunis('2026-12-15', '08:00'));
+  assert.equal((await g.get('/api/auth/me')).status, 200);
+  assert.equal((await g.get('/api/gate/board')).status, 200);
+  // L'admin peut toujours couper l'accès en désactivant le compte
+  S.db.run("UPDATE users SET actif = 0 WHERE username = 'gardien'");
+  assert.equal((await g.get('/api/auth/me')).status, 401);
+  S.db.run("UPDATE users SET actif = 1 WHERE username = 'gardien'");
+});

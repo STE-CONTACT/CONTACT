@@ -111,10 +111,27 @@ async function boot() {
     const me = await get('/api/auth/me');
     setSession(me);
     startSession();
-  } catch {
+  } catch (e) {
+    // Pas de réseau : on attend la connexion au lieu de demander le mot de passe.
+    if (e && e.status === 0) { renderOffline(); return; }
     renderLogin();
   }
 }
+
+function renderOffline() {
+  app.innerHTML = `<div class="login-page"><div class="login-card center">
+    <div class="brand" style="justify-content:center"><div class="logo">${LOGO}</div><div><h1>Autorisations de sortie</h1></div></div>
+    <h2>Pas de connexion</h2><p>Vérifiez le Wi-Fi de la société.<br>L'application se reconnecte automatiquement…</p>
+    <button class="btn btn-primary btn-block mt" id="retry">Réessayer maintenant</button></div></div>`;
+  const retry = () => { clearInterval(offlineTimer); boot(); };
+  app.querySelector('#retry').addEventListener('click', retry);
+  clearInterval(offlineTimer);
+  offlineTimer = setInterval(async () => {
+    try { await fetch('/api/auth/public', { cache: 'no-store' }); retry(); } catch { /* toujours hors ligne */ }
+  }, 3000);
+}
+let offlineTimer = null;
+window.addEventListener('online', () => { if (!state.user) boot(); });
 
 function setSession(data) {
   state.user = data.user;
@@ -342,7 +359,9 @@ function connectEvents() {
   });
   events.addEventListener('authorization', (e) => emit('authorization', JSON.parse(e.data)));
   events.addEventListener('logout', () => { events.close(); get('/api/auth/me').catch(() => {}); });
+  events.onerror = () => showOfflineBanner(true);
   events.addEventListener('hello', (e) => {
+    showOfflineBanner(false);
     const d = JSON.parse(e.data);
     state.serverOffsetMs = new Date(d.server_time) - Date.now();
     // Reconnexion : rafraîchit la vue courante pour récupérer d'éventuels changements manqués
@@ -376,6 +395,19 @@ export function updateBell() {
   b.classList.toggle('hidden', !state.unread);
 }
 on('unread-changed', refreshUnread);
+
+/** Bandeau discret pendant une coupure réseau ; la reconnexion est automatique. */
+function showOfflineBanner(show) {
+  let b = document.getElementById('offline-banner');
+  if (!show) { if (b) b.remove(); return; }
+  if (b) return;
+  b = document.createElement('div');
+  b.id = 'offline-banner';
+  b.className = 'offline-banner';
+  b.textContent = 'Pas de connexion — reconnexion automatique…';
+  document.body.appendChild(b);
+}
+window.addEventListener('online', () => { if (state.user && (!events || events.readyState === EventSource.CLOSED)) connectEvents(); });
 
 // Retour sur l'application (téléphone rallumé, onglet réaffiché) : reconnexion et mise à jour immédiates.
 document.addEventListener('visibilitychange', () => {
@@ -426,6 +458,7 @@ function startIdleWatch() {
     if (!state.user) return;
     const idleMs = Date.now() - lastActivity;
     const limit = state.idleMinutes * 60000;
+    if (!limit) return; // « Jamais » : pas de déconnexion automatique
     if (idleMs >= limit) { logout('idle'); return; }
     if (idleMs >= limit - 60000 && !warning) {
       warning = toast('Sans activité, vous serez déconnecté dans une minute. Touchez l\'écran pour rester connecté.', 'warning', { title: 'Inactivité', timeout: 60000 });

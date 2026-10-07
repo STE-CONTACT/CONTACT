@@ -100,7 +100,7 @@ L'application s'installe comme une vraie application, avec une icône et en plei
 
 ### Rester connecté en permanence
 
-Par défaut, le gardien reste connecté (« Jamais »), et les chefs et le RH restent connectés 7 jours. On règle cela dans **Paramètres → Déconnexion automatique**. Protégez chaque téléphone par un **code de verrouillage**.
+Chaque personne se connecte **une seule fois** avec son mot de passe. Ensuite, l'application **n'est jamais suspendue** (réglage par défaut « Jamais », modifiable dans **Paramètres → Déconnexion automatique**). En cas de coupure réseau, un bandeau orange s'affiche et l'application se reconnecte seule dès que le Wi-Fi revient. Protégez chaque téléphone par un **code de verrouillage**. Pour couper l'accès d'un téléphone perdu : **Utilisateurs → modifier → décocher « Compte actif »**.
 
 ## Étape 6 — Activer les notifications sur chaque téléphone
 

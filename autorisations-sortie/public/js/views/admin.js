@@ -38,7 +38,7 @@ function formModal(title, fields, values = {}, onSubmit, { wide = false } = {}) 
   });
 }
 
-const DUREES = [[20, '20 minutes'], [60, '1 heure'], [480, '8 heures'], [720, '12 heures'], [1440, '24 heures'], [10080, '7 jours'], [43200, 'Jamais (30 jours)']];
+const DUREES = [[0, 'Jamais — toujours connecté'], [20, '20 minutes'], [60, '1 heure'], [480, '8 heures'], [1440, '24 heures'], [10080, '7 jours'], [43200, '30 jours']];
 function dureeOptions(current) {
   const list = DUREES.some(([v]) => v === current) ? DUREES : [[current, `${current} minutes`], ...DUREES];
   return list.map(([v, l]) => `<option value="${v}" ${v === current ? 'selected' : ''}>${l}</option>`).join('');
@@ -380,7 +380,7 @@ export async function renderSettings(el) {
           <div class="field"><label>Déconnexion automatique — chefs, RH, admin</label><select name="session_inactivite_min">${dureeOptions(s.session_inactivite_min)}</select></div>
           <div class="field"><label>Déconnexion automatique — gardien</label><select name="session_inactivite_gardien_min">${dureeOptions(s.session_inactivite_gardien_min)}</select></div>
         </div>
-        <div class="hint mb">« Jamais (30 jours) » : le téléphone reste connecté. Protégez alors chaque téléphone par un code de verrouillage.
+        <div class="hint mb">« Jamais » : le téléphone reste connecté en permanence (désactiver le compte dans Utilisateurs pour couper l'accès). Protégez alors chaque téléphone par un code de verrouillage.
         </div>
         <label class="check"><input type="checkbox" name="notifications_email" ${s.notifications_email ? 'checked' : ''} ${s._info.smtp ? '' : 'disabled'}> Envoyer aussi les notifications par email ${s._info.smtp ? '' : '<small class="muted">(SMTP non configuré)</small>'}</label>
         <p class="muted">Notifications push : ${s._info.push ? 'disponibles (HTTPS requis côté navigateur)' : 'indisponibles'}.</p>

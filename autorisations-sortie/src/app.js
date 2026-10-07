@@ -102,8 +102,13 @@ function createApp(overrides = {}) {
     timers.push(setInterval(() => realtime.heartbeat(), 25000));
     timers.push(setInterval(backupTick, 60000));
     timers.push(setInterval(() => {
-      // Nettoyage des sessions inactives depuis plus de 31 jours (durée maximale réglable)
-      db.run('DELETE FROM sessions WHERE last_seen_at < ?', new Date(Date.now() - 31 * 24 * 3600000).toISOString());
+      // Nettoyage des sessions expirées (rien n'est supprimé pour un rôle réglé sur « Jamais »)
+      const limits = [['gardien', settings.get('session_inactivite_gardien_min')], ['autres', settings.get('session_inactivite_min')]];
+      for (const [role, min] of limits) {
+        if (!min) continue;
+        const before = new Date(Date.now() - min * 60000 - 3600000).toISOString();
+        db.run(`DELETE FROM sessions WHERE last_seen_at < ? AND user_id IN (SELECT id FROM users WHERE role ${role === 'gardien' ? "= 'gardien'" : "!= 'gardien'"})`, before);
+      }
     }, 3600000));
     authz.expireDue();
   }

@@ -36,7 +36,7 @@ export async function renderAccount(el) {
       <div class="card"><h2>Profil</h2><div class="kv">
         <div><span>Nom</span><strong>${esc(u.prenom)} ${esc(u.nom)}</strong></div><div><span>Identifiant</span><strong class="mono">${esc(u.username)}</strong></div>
         <div><span>Rôle</span><strong>${esc(state.settings.roles[u.role])}</strong></div><div><span>Email</span><strong>${esc(u.email || '—')}</strong></div>
-        <div><span>Déconnexion automatique</span><strong>après ${state.idleMinutes} min d'inactivité</strong></div></div></div>
+        <div><span>Déconnexion automatique</span><strong>${state.idleMinutes ? `après ${state.idleMinutes} min d'inactivité` : 'Jamais (toujours connecté)'}</strong></div></div></div>
       <form class="card" id="pw"><h2>Changer le mot de passe</h2>
         <div class="field"><label>Mot de passe actuel</label><input type="password" name="current" autocomplete="current-password" required></div>
         <div class="field"><label>Nouveau mot de passe</label><input type="password" name="password" autocomplete="new-password" required><div class="hint">10 caractères minimum, majuscule, minuscule, chiffre et caractère spécial.</div></div>

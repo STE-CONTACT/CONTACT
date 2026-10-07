@@ -352,6 +352,7 @@ table.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .gate-section-title { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; font-size: 1.1rem; font-weight: 800; color: var(--navy-900); text-transform: uppercase; letter-spacing: .04em; }
 .gate-section-title .n { background: var(--navy-700); color: var(--white); border-radius: 999px; padding: 2px 10px; font-size: .85rem; }
 .flash-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 150; background: var(--green); color: var(--white); padding: 16px 20px; font-size: 1.2rem; font-weight: 800; text-align: center; box-shadow: 0 6px 20px rgba(0, 0, 0, .25); animation: slidein .2s; cursor: pointer; }
+.offline-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 160; background: var(--orange); color: var(--white); text-align: center; padding: 8px 12px; font-weight: 700; font-size: .9rem; }
 .flash-banner.red { background: var(--red); }
 
 /* ---------------------------------------------------------------- POSTE DE GARDE simplifié */

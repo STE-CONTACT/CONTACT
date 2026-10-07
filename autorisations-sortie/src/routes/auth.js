@@ -93,6 +93,7 @@ module.exports = function authRoutes(ctx) {
   });
 
   router.get('/me', auth.authenticate, (req, res) => {
+    auth.refreshCookie(req, res);
     res.json(sessionPayload(req.user));
   });
 

@@ -28,6 +28,16 @@ function createAuth({ db, settings, config }) {
     return user.role === 'gardien' ? settings.get('session_inactivite_gardien_min') : settings.get('session_inactivite_min');
   }
 
+  // Durée maximale acceptée par les navigateurs (400 jours) ; le cookie est renouvelé à chaque ouverture
+  // de l'application, donc une session « Jamais » ne expire jamais côté téléphone.
+  function setCookie(res, token) {
+    res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: config.secureCookies, path: '/', maxAge: 400 * 24 * 3600000 });
+  }
+  function refreshCookie(req, res) {
+    const token = parseCookies(req.headers.cookie)[COOKIE];
+    if (token) setCookie(res, token);
+  }
+
   function createSession(res, user, req) {
     const token = randomToken();
     const now = clock.nowIso();
@@ -35,7 +45,7 @@ function createAuth({ db, settings, config }) {
       sha256(token), user.id, now, now, req.ip, String(req.get('user-agent') || '').slice(0, 200));
     // Cookie persistant : la connexion survit à la fermeture du navigateur du téléphone.
     // La durée réelle reste contrôlée côté serveur (déconnexion après inactivité réglable).
-    res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'strict', secure: config.secureCookies, path: '/', maxAge: 31 * 24 * 3600000 });
+    setCookie(res, token);
     return token;
   }
 
@@ -54,7 +64,8 @@ function createAuth({ db, settings, config }) {
     if (!row) return null;
     const now = clock.now();
     if (!row.actif) { db.run('DELETE FROM sessions WHERE id = ?', sid); return null; }
-    if (now - new Date(row.last_seen_at) > idleMinutes(row) * 60000) {
+    const idle = idleMinutes(row); // 0 = jamais de déconnexion automatique
+    if (idle > 0 && now - new Date(row.last_seen_at) > idle * 60000) {
       db.run('DELETE FROM sessions WHERE id = ?', sid);
       return { expired: true };
     }
@@ -99,7 +110,7 @@ function createAuth({ db, settings, config }) {
     return next();
   }
 
-  return { createSession, destroySession, resolve, authenticate, requireRole, csrf, idleMinutes };
+  return { createSession, refreshCookie, destroySession, resolve, authenticate, requireRole, csrf, idleMinutes };
 }
 
 /** Limitation simple des tentatives de connexion par IP. */
