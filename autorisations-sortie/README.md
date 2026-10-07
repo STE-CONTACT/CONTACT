@@ -19,6 +19,8 @@ Si la société le souhaite, l'administrateur peut rendre la validation RH oblig
 3. Le navigateur s'ouvre sur http://localhost:3000. Connectez-vous avec un compte de démonstration (tableau plus bas).
 4. Pour arrêter, fermez la fenêtre noire. Pour repartir de zéro, supprimez le dossier `data`.
 
+> 🌐 **Mise en ligne (recommandée — téléphones en 4G ou Wi-Fi)** : guide [deploiement/GUIDE-MISE-EN-LIGNE.md](deploiement/GUIDE-MISE-EN-LIGNE.md) et script `deploiement/installer-serveur.sh`.
+>
 > 📱 **Utilisation sur téléphones et tablettes dans la société** : suivez le guide pas à pas [INSTALLATION-RESEAU.md](INSTALLATION-RESEAU.md).
 
 ## Démarrage rapide
