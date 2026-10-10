@@ -3,6 +3,15 @@ const express = require('express');
 const clock = require('../lib/clock');
 const { badRequest } = require('../lib/errors');
 
+/** Seuls les services push officiels des navigateurs sont acceptés (pas d'envoi vers une adresse arbitraire). */
+const PUSH_HOSTS = [/(^|\.)fcm\.googleapis\.com$/, /(^|\.)android\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/];
+function isPushService(endpoint) {
+  try {
+    const u = new URL(String(endpoint));
+    return u.protocol === 'https:' && !u.port && PUSH_HOSTS.some((re) => re.test(u.hostname));
+  } catch { return false; }
+}
+
 module.exports = function notificationRoutes(ctx) {
   const { db, auth, realtime, notifier } = ctx;
   const router = express.Router();
@@ -30,7 +39,7 @@ module.exports = function notificationRoutes(ctx) {
   // Abonnement Web Push (notifications même lorsque l'application est en arrière-plan)
   router.post('/push/subscribe', (req, res) => {
     const s = req.body || {};
-    if (!s.endpoint || !/^https:\/\//.test(s.endpoint) || !s.keys || !s.keys.p256dh || !s.keys.auth) throw badRequest('Abonnement invalide');
+    if (!s.endpoint || !isPushService(s.endpoint) || !s.keys || !s.keys.p256dh || !s.keys.auth) throw badRequest('Abonnement invalide');
     db.run(`INSERT INTO push_subscriptions (user_id, endpoint, keys, created_at) VALUES (?,?,?,?)
       ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, keys = excluded.keys`, req.user.id, s.endpoint, JSON.stringify({ p256dh: s.keys.p256dh, auth: s.keys.auth }), clock.nowIso());
     res.json({ ok: true, enabled: notifier.pushEnabled() });

@@ -13,6 +13,7 @@ const { isValidTime } = require('../lib/time');
 const { publicUser } = require('../middleware/auth');
 const { createBackup, listBackups, pruneBackups, backupPath } = require('../lib/backup');
 const { parseCsv } = require('../lib/csv');
+const { contentMatches } = require('../lib/filecheck');
 
 const PHOTO_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
@@ -156,6 +157,17 @@ module.exports = function adminRoutes(ctx) {
     });
     realtime.closeUser(id);
     res.json({ ok: true, temporary_password: generated ? password : undefined });
+  });
+
+  /** Téléphone perdu : ferme toutes les sessions de la personne sans désactiver son compte. */
+  router.post('/users/:id/logout-all', admin, (req, res) => {
+    const id = Number(req.params.id);
+    if (!db.get('SELECT id FROM users WHERE id = ?', id)) throw notFound();
+    const r = db.run('DELETE FROM sessions WHERE user_id = ?', id);
+    db.run('DELETE FROM push_subscriptions WHERE user_id = ?', id);
+    audit.log({ user: req.user, action: 'SESSIONS_FERMEES', entityType: 'user', entityId: id, after: { sessions: Number(r.changes) }, req });
+    realtime.closeUser(id);
+    res.json({ ok: true, sessions: Number(r.changes) });
   });
 
   router.post('/users/:id/unlock', admin, (req, res) => {
@@ -409,6 +421,7 @@ module.exports = function adminRoutes(ctx) {
     if (!ext) throw badRequest('Format de photo non supporté (JPEG, PNG, WEBP)');
     const buf = Buffer.from(String(req.body.data || ''), 'base64');
     if (!buf.length || buf.length > 2 * 1024 * 1024) throw badRequest('Photo vide ou trop volumineuse (2 Mo max.)');
+    if (!contentMatches(req.body.type, buf)) throw badRequest("Le fichier n'est pas une image valide (JPEG, PNG ou WEBP)");
     const dir = path.join(config.uploadsDir, 'photos');
     fs.mkdirSync(dir, { recursive: true });
     const name = `${crypto.randomUUID()}${ext}`;

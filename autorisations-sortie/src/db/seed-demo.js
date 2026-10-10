@@ -12,6 +12,11 @@ const { localDate, addDays, zonedToUtc } = require('../lib/time');
 const DEMO_PASSWORD = 'Demo@2026!';
 const ADMIN_PASSWORD = 'Admin@2026!';
 
+if ((process.env.TRUST_PROXY === '1' || process.env.SECURE_COOKIES === '1' || process.env.NODE_ENV === 'production') && !process.argv.includes('--force')) {
+  console.error('Refus : les données de démonstration (comptes avec mots de passe connus) ne doivent pas être créées sur un serveur en production.');
+  process.exit(1);
+}
+
 const { ctx, close } = createApp({ startJobs: false, quiet: true });
 const { db, authz, settings } = ctx;
 

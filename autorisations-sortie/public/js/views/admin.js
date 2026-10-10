@@ -92,6 +92,7 @@ export async function renderUsers(el) {
         <td data-label="Affectation">${esc(u.equipe || u.poste_garde || '—')}</td><td data-label="Connexion">${u.last_login_at ? fmtDateTime(u.last_login_at) : '—'}</td>
         <td data-label="État">${yesNo(u.actif)}${u.locked ? ' <span class="tag tag-red">verrouillé</span>' : ''}${u.must_change_password ? ' <span class="tag tag-warn">mdp à changer</span>' : ''}</td>
         <td class="right nowrap"><button class="btn btn-sm" data-edit="${u.id}">${icon('edit')}</button> <button class="btn btn-sm" data-reset="${u.id}" title="Réinitialiser le mot de passe">${icon('key')}</button>
+          <button class="btn btn-sm" data-logoutall="${u.id}" title="Téléphone perdu : déconnecter tous ses appareils">${icon('logout')}</button>
           ${u.locked ? `<button class="btn btn-sm" data-unlock="${u.id}">Déverrouiller</button>` : ''} ${u.id !== state.user.id ? `<button class="btn btn-sm" data-del="${u.id}">${icon('trash')}</button>` : ''}</td></tr>`).join('')}
       </tbody></table></div></div>`;
     el.querySelector('[data-new]').onclick = () => formModal('Nouvel utilisateur', fields(true), { actif: true }, async (d) => {
@@ -105,6 +106,11 @@ export async function renderUsers(el) {
       const u = users.find((x) => x.id === Number(b.dataset.reset));
       if (!await confirmDialog('Réinitialiser le mot de passe', `Générer un nouveau mot de passe temporaire pour ${u.prenom} ${u.nom} ? Ses sessions seront fermées.`)) return;
       try { const r = await post(`/api/users/${u.id}/reset-password`); await showPassword(u.username, r.temporary_password); load(); } catch (e) { toastError(e); }
+    }; });
+    el.querySelectorAll('[data-logoutall]').forEach((b) => { b.onclick = async () => {
+      const u = users.find((x) => x.id === Number(b.dataset.logoutall));
+      if (!await confirmDialog('Déconnecter tous les appareils', `Fermer toutes les connexions de ${u.prenom} ${u.nom} (téléphone perdu, changement de téléphone) ? Il devra se reconnecter avec son mot de passe.`, { confirmLabel: 'Déconnecter', danger: true })) return;
+      try { const r = await post(`/api/users/${u.id}/logout-all`); toast(`${r.sessions} appareil(s) déconnecté(s)`, 'success'); } catch (e) { toastError(e); }
     }; });
     el.querySelectorAll('[data-unlock]').forEach((b) => { b.onclick = async () => { await post(`/api/users/${b.dataset.unlock}/unlock`); toast('Compte déverrouillé', 'success'); load(); }; });
     el.querySelectorAll('[data-del]').forEach((b) => { b.onclick = async () => { try { if (await removeItem(`/api/users/${b.dataset.del}`, 'cet utilisateur')) load(); } catch (e) { toastError(e); } }; });

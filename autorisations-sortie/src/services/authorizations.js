@@ -8,6 +8,7 @@ const {
 } = require('../lib/time');
 const { badRequest, forbidden, notFound, conflict } = require('../lib/errors');
 const { TYPES_SORTIE, STATUTS, STATUTS_ACTIFS } = require('../lib/constants');
+const { contentMatches } = require('../lib/filecheck');
 
 const ATTACHMENT_TYPES = {
   'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
@@ -217,6 +218,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const buf = Buffer.from(String(file.data || ''), 'base64');
     if (!buf.length) throw badRequest('Pièce jointe vide');
     if (buf.length > MAX_ATTACHMENT_BYTES) throw badRequest('Pièce jointe trop volumineuse (5 Mo max.)');
+    if (!contentMatches(file.type, buf)) throw badRequest('Le contenu du fichier ne correspond pas à son type (PDF, JPEG, PNG ou WEBP attendu)');
     const dir = path.join(config.uploadsDir, 'pieces-jointes');
     fs.mkdirSync(dir, { recursive: true });
     const name = `${crypto.randomUUID()}${ext}`;

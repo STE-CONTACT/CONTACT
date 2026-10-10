@@ -91,6 +91,8 @@ Statuts : `BROUILLON`, `EN ATTENTE` 🟡, `VALIDÉE` 🟢, `REFUSÉE` 🔴, `ANN
 
 ## Sécurité
 
+Rapport complet de l'audit : **[SECURITE.md](SECURITE.md)**. 14 tests d'attaque automatiques se trouvent dans `test/securite.test.js`.
+
 - Mots de passe hachés avec **scrypt**. Politique imposée : 10 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.
 - Compte **verrouillé 15 min** après 5 échecs de connexion. Les tentatives sont aussi limitées par adresse IP.
 - Sessions côté serveur avec cookie `HttpOnly` et `SameSite=Strict`. **Déconnexion automatique après inactivité** : 20 min par défaut, 8 h pour la tablette du gardien. Les deux durées se règlent.
@@ -135,7 +137,7 @@ PORT=3000 TRUST_PROXY=1 SECURE_COOKIES=1 npm start
 npm test
 ```
 
-17 tests automatisés reproduisent les scénarios demandés avec une horloge simulée :
+38 tests automatisés (dont 14 tests de sécurité) reproduisent les scénarios demandés avec une horloge simulée :
 
 - autorisation pendant les heures RH, après 17:00, pendant la pause, à 23:30 et à 02:00 ;
 - poste 23:00–07:00 et passage d'une date à l'autre ;

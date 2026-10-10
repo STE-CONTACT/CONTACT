@@ -3,7 +3,9 @@
 function toCsv(headers, rows) {
   const esc = (v) => {
     if (v == null) return '';
-    const s = String(v);
+    let s = String(v);
+    // Neutralise les formules (=, +, -, @) : un motif piégé ne peut pas s'exécuter dans Excel.
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   // BOM + séparateur « ; » : ouverture directe dans Excel (version française).

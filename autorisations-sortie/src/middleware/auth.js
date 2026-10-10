@@ -119,6 +119,7 @@ function createLoginLimiter({ max = 20, windowMs = 15 * 60000 } = {}) {
   return {
     check(ip) {
       const now = Date.now();
+      if (hits.size > 10000) { for (const [k, v] of hits) if (now - v.start > windowMs) hits.delete(k); }
       const h = hits.get(ip);
       if (!h || now - h.start > windowMs) { hits.set(ip, { start: now, n: 1 }); return true; }
       h.n++;
