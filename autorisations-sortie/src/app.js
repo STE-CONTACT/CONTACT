@@ -2,6 +2,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const express = require('express');
+const compression = require('compression');
 const { loadConfig } = require('./config');
 const { openDatabase } = require('./db/index');
 const { initDatabase } = require('./db/init');
@@ -47,6 +48,8 @@ function createApp(overrides = {}) {
     next();
   });
 
+  // Compression des pages et données (chargement plus rapide en Wi-Fi) — sauf le flux temps réel.
+  app.use(compression({ filter: (req, res) => !req.path.startsWith('/api/events') && compression.filter(req, res) }));
   app.use(express.json({ limit: '8mb' }));
 
   // API

@@ -13,7 +13,8 @@ function loadConfig(overrides = {}) {
   return {
     root: ROOT,
     port: Number(process.env.PORT) || 3000,
-    host: process.env.HOST || '0.0.0.0',
+    // « :: » écoute à la fois en IPv4 et IPv6 : « localhost » répond tout de suite sous Windows.
+    host: process.env.HOST || '::',
     dataDir,
     dbPath: overrides.dbPath || process.env.DB_PATH || path.join(dataDir, 'sorties.db'),
     uploadsDir: path.join(dataDir, 'uploads'),

@@ -410,8 +410,18 @@ function showOfflineBanner(show) {
 window.addEventListener('online', () => { if (state.user && (!events || events.readyState === EventSource.CLOSED)) connectEvents(); });
 
 // Retour sur l'application (téléphone rallumé, onglet réaffiché) : reconnexion et mise à jour immédiates.
+// Onglet en arrière-plan (PC avec plusieurs onglets) : on libère la connexion temps réel après 20 s,
+// car le navigateur limite à 6 connexions simultanées vers le même serveur. Le gardien la garde toujours.
+let hiddenTimer = null;
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || !state.user) return;
+  clearTimeout(hiddenTimer);
+  if (document.visibilityState === 'hidden') {
+    if (state.user && state.user.role !== 'gardien') {
+      hiddenTimer = setTimeout(() => { if (document.hidden && events) { events.close(); events = null; } }, 20000);
+    }
+    return;
+  }
+  if (!state.user) return;
   if (!events || events.readyState === EventSource.CLOSED) connectEvents();
   refreshUnread();
   refreshCounts();
