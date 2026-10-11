@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS employees (
   telephone  TEXT,
   fonction   TEXT,                 -- ex. Opératrice, Chef d'équipe (information)
   regime     TEXT,                 -- Mensuel / Horaire (information)
+  reserve_rh INTEGER NOT NULL DEFAULT 0, -- 1 = seul le RH (ou l'admin) peut autoriser cette personne (cadres, administration)
   photo      TEXT,
   qr_token   TEXT NOT NULL UNIQUE,
   actif      INTEGER NOT NULL DEFAULT 1,

@@ -326,14 +326,15 @@ module.exports = function adminRoutes(ctx) {
   router.delete('/teams/:id', admin, (req, res) => res.json(deleteOrDeactivate('teams', Number(req.params.id), req, req.user, 'team', 'EQUIPE')));
 
   // ================================================================ OPÉRATEURS
-  const EMP_SELECT = `SELECT e.id, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.photo, e.actif, e.created_at,
+  const EMP_SELECT = `SELECT e.id, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.reserve_rh, e.photo, e.actif, e.created_at,
     s.nom AS service, t.nom AS equipe, sh.nom AS poste_nom, sh.heure_debut AS poste_debut, sh.heure_fin AS poste_fin
     FROM employees e LEFT JOIN services s ON s.id = e.service_id LEFT JOIN teams t ON t.id = e.team_id LEFT JOIN shifts sh ON sh.id = e.shift_id`;
 
   function employeeScope(user) {
-    if (user.role === 'admin' || user.role === 'rh' || user.droit_toutes_equipes) return { sql: '1=1', params: [] };
+    if (user.role === 'admin' || user.role === 'rh') return { sql: '1=1', params: [] };
+    if (user.droit_toutes_equipes) return { sql: 'e.reserve_rh = 0', params: [] };
     const ids = authz.chefTeamIds(user);
-    return ids.length ? { sql: `e.team_id IN (${ids.map(() => '?').join(',')})`, params: ids } : { sql: '0=1', params: [] };
+    return ids.length ? { sql: `e.team_id IN (${ids.map(() => '?').join(',')}) AND e.reserve_rh = 0`, params: ids } : { sql: '0=1', params: [] };
   }
 
   router.get('/employees', staff, (req, res) => {
@@ -348,6 +349,7 @@ module.exports = function adminRoutes(ctx) {
     if (req.query.team_id) { where.push('e.team_id = ?'); params.push(Number(req.query.team_id)); }
     if (req.query.service_id) { where.push('e.service_id = ?'); params.push(Number(req.query.service_id)); }
     if (['Mensuel', 'Horaire'].includes(req.query.regime)) { where.push('e.regime = ?'); params.push(req.query.regime); }
+    if (req.query.reserve_rh === '1') where.push('e.reserve_rh = 1');
     if (req.query.actif === '1') where.push('e.actif = 1');
     if (req.query.actif === '0') where.push('e.actif = 0');
     const limit = Math.min(1000, Number(req.query.limit) || 500);
@@ -379,6 +381,7 @@ module.exports = function adminRoutes(ctx) {
       shift_id: body.shift_id !== undefined ? idOrNull(body.shift_id) : existing?.shift_id ?? null,
       telephone: body.telephone !== undefined ? (str(body.telephone, 30) || null) : existing?.telephone ?? null,
       fonction: body.fonction !== undefined ? (str(body.fonction, 80) || null) : existing?.fonction ?? null,
+      reserve_rh: body.reserve_rh !== undefined ? (bool(body.reserve_rh) ? 1 : 0) : existing?.reserve_rh ?? 0,
       regime: body.regime !== undefined ? (['Mensuel', 'Horaire'].includes(body.regime) ? body.regime : null) : existing?.regime ?? null,
       actif: body.actif !== undefined ? (bool(body.actif) ? 1 : 0) : existing?.actif ?? 1,
     };
@@ -392,8 +395,8 @@ module.exports = function adminRoutes(ctx) {
     const now = clock.nowIso();
     try {
       const id = db.tx(() => {
-        const r = db.run(`INSERT INTO employees (matricule, nom, prenom, service_id, team_id, shift_id, telephone, fonction, regime, qr_token, actif, created_at, updated_at)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, randomToken(12), e.actif, now, now);
+        const r = db.run(`INSERT INTO employees (matricule, nom, prenom, service_id, team_id, shift_id, telephone, fonction, regime, reserve_rh, qr_token, actif, created_at, updated_at)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.reserve_rh, randomToken(12), e.actif, now, now);
         audit.log({ user: req.user, action: 'OPERATEUR_CREE', entityType: 'employee', entityId: Number(r.lastInsertRowid), after: e, req });
         return Number(r.lastInsertRowid);
       });
@@ -408,8 +411,8 @@ module.exports = function adminRoutes(ctx) {
     const e = validateEmployee(req.body, before);
     try {
       db.tx(() => {
-        db.run('UPDATE employees SET matricule=?, nom=?, prenom=?, service_id=?, team_id=?, shift_id=?, telephone=?, fonction=?, regime=?, actif=?, updated_at=? WHERE id=?',
-          e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.actif, clock.nowIso(), id);
+        db.run('UPDATE employees SET matricule=?, nom=?, prenom=?, service_id=?, team_id=?, shift_id=?, telephone=?, fonction=?, regime=?, reserve_rh=?, actif=?, updated_at=? WHERE id=?',
+          e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.reserve_rh, e.actif, clock.nowIso(), id);
         audit.log({ user: req.user, action: 'OPERATEUR_MODIFIE', entityType: 'employee', entityId: id, before: pickKeys(before, Object.keys(e)), after: e, req });
       });
     } catch (err) { if (isUniqueError(err)) throw conflict('Ce matricule existe déjà'); throw err; }

@@ -130,6 +130,7 @@ export async function renderEmployees(el) {
     { name: 'fonction', label: 'Fonction' },
     { name: 'regime', label: 'Régime', type: 'select', options: [{ id: 'Horaire', nom: 'Horaire' }, { id: 'Mensuel', nom: 'Mensuel' }], empty: '—' },
     { name: 'telephone', label: 'Téléphone', type: 'tel' },
+    { name: 'reserve_rh', label: 'Autorisation réservée au RH (cadres, administration) — invisible pour les chefs', type: 'checkbox' },
     { name: 'actif', label: 'Opérateur actif', type: 'checkbox', default: true },
   ];
   const f = { q: '', team_id: '', service_id: '', actif: '', regime: '' };
@@ -138,7 +139,7 @@ export async function renderEmployees(el) {
       <input type="search" id="e-q" placeholder="Matricule, nom, prénom" style="max-width:280px">
       <select id="e-team" style="max-width:200px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select>
       <select id="e-service" style="max-width:200px">${selectOptions(services, '', { empty: 'Tous les services' })}</select>
-      <select id="e-regime" style="max-width:160px"><option value="">Tous régimes</option><option value="Horaire">Régime horaire</option><option value="Mensuel">Régime mensuel</option></select>
+      <select id="e-regime" style="max-width:160px"><option value="">Tous régimes</option><option value="Horaire">Régime horaire</option><option value="Mensuel">Régime mensuel</option><option value="reserve">Réservés au RH</option></select>
       <select id="e-actif" style="max-width:160px"><option value="">Actifs et inactifs</option><option value="1">Actifs</option><option value="0">Inactifs</option></select>
       <span class="muted" id="e-count"></span></div><div id="e-body"></div></div>`;
   const body = el.querySelector('#e-body');
@@ -148,7 +149,7 @@ export async function renderEmployees(el) {
     el.querySelector('#e-count').textContent = `${list.length} opérateur(s)`;
     body.innerHTML = `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Personne</th><th>Fonction</th><th>Affectation</th><th>Régime</th><th>Poste</th><th>État</th><th></th></tr></thead><tbody>
       ${list.map((e) => `<tr><td class="main-cell"><div class="emp">${avatar(e.id, e.photo, e.prenom, e.nom)}<div><div class="name"><span class="mat">${esc(e.matricule)}</span> ${esc(e.nom)} ${esc(e.prenom)}</div></div></div></td>
-        <td data-label="Fonction">${esc(e.fonction || '—')}</td><td data-label="Affectation">${esc(e.equipe || '—')}</td><td data-label="Régime">${e.regime ? `<span class="tag">${esc(e.regime)}</span>` : '—'}</td><td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td><td data-label="État">${yesNo(e.actif)}</td>
+        <td data-label="Fonction">${esc(e.fonction || '—')}${e.reserve_rh ? ' <span class="tag tag-warn">réservé RH</span>' : ''}</td><td data-label="Affectation">${esc(e.equipe || '—')}</td><td data-label="Régime">${e.regime ? `<span class="tag">${esc(e.regime)}</span>` : '—'}</td><td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td><td data-label="État">${yesNo(e.actif)}</td>
         <td class="right nowrap"><button class="btn btn-sm" data-edit="${e.id}">${icon('edit')}</button> <button class="btn btn-sm" data-photo="${e.id}" title="Photo">${icon('upload')}</button> <button class="btn btn-sm" data-qr="${e.id}" title="QR code">${icon('qr')}</button> <button class="btn btn-sm" data-del="${e.id}">${icon('trash')}</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucun opérateur</td></tr>'}
       </tbody></table></div>`;
   };
@@ -157,7 +158,11 @@ export async function renderEmployees(el) {
   el.querySelector('#e-team').onchange = (e) => { f.team_id = e.target.value; deb(); };
   el.querySelector('#e-service').onchange = (e) => { f.service_id = e.target.value; deb(); };
   el.querySelector('#e-actif').onchange = (e) => { f.actif = e.target.value; deb(); };
-  el.querySelector('#e-regime').onchange = (e) => { f.regime = e.target.value; deb(); };
+  el.querySelector('#e-regime').onchange = (e) => {
+    f.regime = e.target.value === 'reserve' ? '' : e.target.value;
+    f.reserve_rh = e.target.value === 'reserve' ? '1' : '';
+    deb();
+  };
   el.querySelector('[data-new]').onclick = () => formModal('Nouvel opérateur', fields, { actif: true }, async (d) => { await post('/api/employees', d); toast('Opérateur créé', 'success'); load(); });
   body.addEventListener('click', async (ev) => {
     const b = ev.target.closest('button'); if (!b) return;

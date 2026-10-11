@@ -44,6 +44,7 @@ function migrate(db, schema) {
   const empCols = db.prepare('PRAGMA table_info(employees)').all().map((c) => c.name);
   if (!empCols.includes('fonction')) db.exec('ALTER TABLE employees ADD COLUMN fonction TEXT');
   if (!empCols.includes('regime')) db.exec('ALTER TABLE employees ADD COLUMN regime TEXT');
+  if (!empCols.includes('reserve_rh')) db.exec('ALTER TABLE employees ADD COLUMN reserve_rh INTEGER NOT NULL DEFAULT 0');
   const cols = db.prepare('PRAGMA table_info(exit_authorizations)').all().map((c) => c.name);
   if (cols.includes('avec_retour')) return;
   const create = /CREATE TABLE IF NOT EXISTS exit_authorizations \([\s\S]*?\n\);/.exec(schema)[0]

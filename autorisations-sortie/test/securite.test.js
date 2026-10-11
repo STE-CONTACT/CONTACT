@@ -191,3 +191,21 @@ test('Données de démonstration interdites sur un serveur en production', () =>
   assert.equal(r.status, 1);
   assert.match(r.stderr, /production/);
 });
+
+test('Personnel « réservé RH » : invisible et non autorisable par un chef, même avec accès à tout le personnel', async () => {
+  S.db.run('UPDATE users SET droit_toutes_equipes = 1 WHERE id = ?', S.ids.chefA);
+  S.db.run('UPDATE employees SET reserve_rh = 1 WHERE id = ?', S.ids.sami);
+  const list = (await chef.get('/api/employees')).data.map((e) => e.id);
+  assert.ok(list.includes(S.ids.mohamed), 'les autres affectations sont visibles');
+  assert.ok(!list.includes(S.ids.sami), 'la personne réservée RH est masquée');
+  assert.equal((await chef.get(`/api/employees/${S.ids.sami}`)).status, 403);
+  const c = await chef.post('/api/authorizations', { employee_id: S.ids.sami, date_sortie: '2026-10-10', heure_sortie_prevue: '17:00', heure_retour_prevue: '18:00', type_sortie: 'PERSONNELLE', motif: 'x' });
+  assert.equal(c.status, 403);
+  assert.match(c.data.error, /réservée au RH/);
+  const byRh = await rh.post('/api/authorizations', { employee_id: S.ids.sami, date_sortie: '2026-10-10', heure_sortie_prevue: '17:00', heure_retour_prevue: '18:00', type_sortie: 'PERSONNELLE', motif: 'Rendez-vous confidentiel' });
+  assert.equal(byRh.status, 201, 'le RH peut autoriser');
+  assert.equal((await chef.get(`/api/authorizations/${byRh.data.id}`)).status, 404, 'le chef ne voit pas cette autorisation');
+  assert.ok(!(await chef.get('/api/authorizations?size=200')).data.items.some((a) => a.id === byRh.data.id));
+  S.db.run('UPDATE users SET droit_toutes_equipes = 0 WHERE id = ?', S.ids.chefA);
+  S.db.run('UPDATE employees SET reserve_rh = 0 WHERE id = ?', S.ids.sami);
+});

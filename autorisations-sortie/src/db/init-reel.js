@@ -28,6 +28,9 @@ const COMPTES = [
   { username: 'rh', password: 'RH', role: 'rh', nom: 'RH', prenom: 'Service' },
   { username: 'gardien', password: 'Gardien', role: 'gardien', nom: 'POSTE DE GARDE', prenom: 'Gardien' },
 ];
+// Personnel dont l'autorisation est réservée au RH (cadres, responsables, administration) :
+// les chefs ne les voient pas. Tous les autres sont visibles par Karim et Marwen.
+const RESERVES_RH = ['4', '44', '121', '129', '206', '373', '383', '446', '450', '466', '476', '478', '491', '503', '513', '514', '516'];
 // Affectation → responsable (les autres affectations sont rattachées au RH, qui peut autoriser tout le monde)
 const RESPONSABLE = (nom) => (/ASSEMBLAGE/i.test(nom) ? 'karim' : /INJECTION|MAINT/i.test(nom) ? 'marwen' : 'rh');
 
@@ -61,6 +64,9 @@ const RESPONSABLE = (nom) => (/ASSEMBLAGE/i.test(nom) ? 'karim' : /INJECTION|MAI
       ids[c.username] = Number(r.lastInsertRowid);
     }
     for (const t of db.all('SELECT id, nom FROM teams')) db.run('UPDATE teams SET chef_equipe_id = ? WHERE id = ?', ids[RESPONSABLE(t.nom)], t.id);
+    // Karim et Marwen voient et autorisent tout le personnel (sauf « réservé RH »)
+    db.run("UPDATE users SET droit_toutes_equipes = 1 WHERE username IN ('karim', 'marwen')");
+    for (const m of RESERVES_RH) db.run('UPDATE employees SET reserve_rh = 1 WHERE matricule = ?', m);
     ctx.audit.log({ user: null, action: 'INITIALISATION', entityType: 'user', after: { personnel: people.length, comptes: COMPTES.map((c) => c.username).concat('admin') } });
   });
 
@@ -70,6 +76,8 @@ const RESPONSABLE = (nom) => (/ASSEMBLAGE/i.test(nom) ? 'karim' : /INJECTION|MAI
   if (errors.length || report.errors.length) console.log('Remarques :\n  - ' + [...errors, ...report.errors].join('\n  - '));
   console.log('\nAffectations (responsable) :');
   for (const t of teams) console.log(`  ${t.nom.padEnd(22)} ${String(t.n).padStart(3)} pers.  →  ${t.username}`);
+  const nRes = db.get('SELECT COUNT(*) AS n FROM employees WHERE reserve_rh = 1').n;
+  console.log(`\nKarim et Marwen voient tout le personnel, sauf ${nRes} personne(s) dont l'autorisation est réservée au RH.`);
   console.log('\nComptes (mot de passe de PREMIÈRE connexion — un nouveau mot de passe sera demandé) :');
   console.log('  Admin    / Admin     Administrateur');
   for (const c of COMPTES) console.log(`  ${c.password.padEnd(8)} / ${c.password.padEnd(9)} ${c.libelle || ({ rh: 'RH', gardien: 'Gardien' }[c.role])}`);

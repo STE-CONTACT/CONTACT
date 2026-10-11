@@ -52,11 +52,12 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
   function scopeClause(user) {
     if (user.role === 'admin' || user.role === 'rh') return { sql: '1=1', params: [] };
     if (user.role === 'chef') {
-      if (user.droit_toutes_equipes) return { sql: '1=1', params: [] };
+      // Personnel « réservé RH » (cadres, administration) : jamais visible par un chef, sauf ses propres demandes.
+      if (user.droit_toutes_equipes) return { sql: '(a.created_by = ? OR e.reserve_rh = 0)', params: [user.id] };
       const teams = chefTeamIds(user);
       const ph = teams.map(() => '?').join(',');
       return {
-        sql: teams.length ? `(a.created_by = ? OR e.team_id IN (${ph}))` : 'a.created_by = ?',
+        sql: teams.length ? `(a.created_by = ? OR (e.team_id IN (${ph}) AND e.reserve_rh = 0))` : 'a.created_by = ?',
         params: [user.id, ...teams],
       };
     }
@@ -67,6 +68,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     // Le RH peut autoriser tout le personnel ; le chef seulement celui de ses affectations.
     if (user.role === 'admin' || user.role === 'rh') return true;
     if (user.role !== 'chef') return false;
+    if (employee.reserve_rh) return false; // autorisation réservée au RH
     if (user.droit_toutes_equipes) return true;
     return chefTeamIds(user).includes(employee.team_id);
   }
@@ -266,7 +268,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     const emp = db.get('SELECT * FROM employees WHERE id = ?', employeeId);
     if (!emp) throw badRequest('Opérateur introuvable');
     if (!emp.actif) throw badRequest('Cet opérateur est inactif');
-    if (!canManageEmployee(user, emp)) throw forbidden("Cette personne ne fait pas partie de votre affectation");
+    if (!canManageEmployee(user, emp)) throw forbidden(emp.reserve_rh ? "L'autorisation de cette personne est réservée au RH" : 'Cette personne ne fait pas partie de votre affectation');
     const fields = validateFields(input);
     const submit = input.submit !== false;
     // Par défaut, l'autorisation du chef est valable immédiatement (pas de validation RH).

@@ -72,6 +72,8 @@ test('Initialisation avec le vrai personnel et les comptes demandés', async () 
     await karim.login('Karim', 'Karim');
     assert.equal((await karim.post('/api/auth/change-password', { current: 'Karim', password: 'Assemblage#2026' })).status, 200);
     const mine = (await karim.get('/api/employees')).data.map((e) => e.matricule);
-    assert.deepEqual(mine, ['10014'], 'Karim voit le personnel ASSEMBLAGE uniquement');
+    assert.deepEqual(mine.sort(), ['10012', '10014', '10809', '16'], 'Karim voit tout le personnel sauf les « réservés RH » (4, 206)');
+    const res = await karim.get('/api/employees?q=HICHRI');
+    assert.equal(res.data.length, 0);
   } finally { server.close(); close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
