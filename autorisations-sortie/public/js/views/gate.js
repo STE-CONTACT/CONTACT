@@ -19,7 +19,7 @@ function horaires(a) {
 function person(e, big = false) {
   return `<div class="g-person">${avatar(e.employee_id ?? e.id, e.photo ?? e.emp_photo, e.prenom ?? e.emp_prenom, e.nom ?? e.emp_nom, big ? 'avatar-xl' : '')}
     <div><div class="g-name">${esc(e.prenom ?? e.emp_prenom)} ${esc(e.nom ?? e.emp_nom)}</div>
-    <div class="g-sub"><span class="mat">MAT. ${esc(e.matricule)}</span> ${esc(e.equipe || '')}</div></div></div>`;
+    <div class="g-sub"><span class="mat">MAT. ${esc(e.matricule)}</span></div></div></div>`;
 }
 
 // ------------------------------------------------------------------ résultat du contrôle

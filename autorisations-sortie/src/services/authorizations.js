@@ -250,7 +250,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       userIds: notifier.recipientsByRole('gardien'),
       type: 'AUTORISATION_VALIDEE',
       titre: `Sortie autorisée — MAT. ${a.matricule}`,
-      message: `${a.emp_prenom} ${a.emp_nom} (${a.equipe || 'sans affectation'}) : sortie ${fmtWindow(a)}. Autorisée par ${a.valideur || a.createur}.`,
+      message: `${a.emp_prenom} ${a.emp_nom} : sortie ${fmtWindow(a)}. Autorisée par ${a.valideur || a.createur}.`,
       entityType: 'authorization', entityId: a.id,
     });
   }
