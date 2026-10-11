@@ -127,15 +127,18 @@ export async function renderEmployees(el) {
     { name: 'service_id', label: 'Service', type: 'select', options: services, empty: '—' },
     { name: 'team_id', label: 'Affectation', type: 'select', options: teams, empty: '—' },
     { name: 'shift_id', label: 'Poste', type: 'select', options: shifts, empty: '—', optionLabel: shiftLabel },
+    { name: 'fonction', label: 'Fonction' },
+    { name: 'regime', label: 'Régime', type: 'select', options: [{ id: 'Horaire', nom: 'Horaire' }, { id: 'Mensuel', nom: 'Mensuel' }], empty: '—' },
     { name: 'telephone', label: 'Téléphone', type: 'tel' },
     { name: 'actif', label: 'Opérateur actif', type: 'checkbox', default: true },
   ];
-  const f = { q: '', team_id: '', service_id: '', actif: '' };
-  el.innerHTML = `${pageHead('Opérateurs', 'Ouvriers et opérateurs (sans compte utilisateur) : matricule, affectation, service, poste, photo.', `<div class="row"><a class="btn" href="#/admin/matricules">${icon('qr')} Badges QR / import</a><button class="btn btn-primary" data-new>${icon('plus')} Nouvel opérateur</button></div>`)}
+  const f = { q: '', team_id: '', service_id: '', actif: '', regime: '' };
+  el.innerHTML = `${pageHead('Opérateurs', 'Tout le personnel (régime horaire et mensuel), sans compte utilisateur : matricule, fonction, affectation, régime, photo. Chacun peut recevoir une autorisation.', `<div class="row"><a class="btn" href="#/admin/matricules">${icon('qr')} Badges QR / import</a><button class="btn btn-primary" data-new>${icon('plus')} Nouvel opérateur</button></div>`)}
     <div class="card"><div class="row mb">
       <input type="search" id="e-q" placeholder="Matricule, nom, prénom" style="max-width:280px">
       <select id="e-team" style="max-width:200px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select>
       <select id="e-service" style="max-width:200px">${selectOptions(services, '', { empty: 'Tous les services' })}</select>
+      <select id="e-regime" style="max-width:160px"><option value="">Tous régimes</option><option value="Horaire">Régime horaire</option><option value="Mensuel">Régime mensuel</option></select>
       <select id="e-actif" style="max-width:160px"><option value="">Actifs et inactifs</option><option value="1">Actifs</option><option value="0">Inactifs</option></select>
       <span class="muted" id="e-count"></span></div><div id="e-body"></div></div>`;
   const body = el.querySelector('#e-body');
@@ -143,10 +146,9 @@ export async function renderEmployees(el) {
   const load = async () => {
     list = await get(`/api/employees${qs({ ...f, limit: 1000 })}`);
     el.querySelector('#e-count').textContent = `${list.length} opérateur(s)`;
-    body.innerHTML = `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Opérateur</th><th>Service</th><th>Affectation</th><th>Poste</th><th>Téléphone</th><th>État</th><th></th></tr></thead><tbody>
+    body.innerHTML = `<div class="table-wrap"><table class="table responsive"><thead><tr><th>Personne</th><th>Fonction</th><th>Affectation</th><th>Régime</th><th>Poste</th><th>État</th><th></th></tr></thead><tbody>
       ${list.map((e) => `<tr><td class="main-cell"><div class="emp">${avatar(e.id, e.photo, e.prenom, e.nom)}<div><div class="name"><span class="mat">${esc(e.matricule)}</span> ${esc(e.nom)} ${esc(e.prenom)}</div></div></div></td>
-        <td data-label="Service">${esc(e.service || '—')}</td><td data-label="Affectation">${esc(e.equipe || '—')}</td><td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td>
-        <td data-label="Tél.">${esc(e.telephone || '')}</td><td data-label="État">${yesNo(e.actif)}</td>
+        <td data-label="Fonction">${esc(e.fonction || '—')}</td><td data-label="Affectation">${esc(e.equipe || '—')}</td><td data-label="Régime">${e.regime ? `<span class="tag">${esc(e.regime)}</span>` : '—'}</td><td data-label="Poste">${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</td><td data-label="État">${yesNo(e.actif)}</td>
         <td class="right nowrap"><button class="btn btn-sm" data-edit="${e.id}">${icon('edit')}</button> <button class="btn btn-sm" data-photo="${e.id}" title="Photo">${icon('upload')}</button> <button class="btn btn-sm" data-qr="${e.id}" title="QR code">${icon('qr')}</button> <button class="btn btn-sm" data-del="${e.id}">${icon('trash')}</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucun opérateur</td></tr>'}
       </tbody></table></div>`;
   };
@@ -155,6 +157,7 @@ export async function renderEmployees(el) {
   el.querySelector('#e-team').onchange = (e) => { f.team_id = e.target.value; deb(); };
   el.querySelector('#e-service').onchange = (e) => { f.service_id = e.target.value; deb(); };
   el.querySelector('#e-actif').onchange = (e) => { f.actif = e.target.value; deb(); };
+  el.querySelector('#e-regime').onchange = (e) => { f.regime = e.target.value; deb(); };
   el.querySelector('[data-new]').onclick = () => formModal('Nouvel opérateur', fields, { actif: true }, async (d) => { await post('/api/employees', d); toast('Opérateur créé', 'success'); load(); });
   body.addEventListener('click', async (ev) => {
     const b = ev.target.closest('button'); if (!b) return;
@@ -195,7 +198,7 @@ function qrModal(e) {
 // ================================================================== MATRICULES & QR
 export async function renderMatricules(el) {
   const teams = await get('/api/teams');
-  el.innerHTML = `${pageHead('Matricules & QR codes', 'Badges QR à imprimer pour l\'identification rapide au poste de garde, et import des opérateurs.', `<button class="btn" data-import>${icon('upload')} Importer (CSV)</button>`)}
+  el.innerHTML = `${pageHead('Matricules & QR codes', 'Badges QR à imprimer pour l\'identification rapide au poste de garde, et import des opérateurs.', `<button class="btn btn-primary" data-import>${icon('upload')} Importer le personnel (Excel)</button>`)}
     <div class="card no-print"><div class="row"><select id="m-team" style="max-width:240px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select>
       <input type="search" id="m-q" placeholder="Matricule ou nom" style="max-width:260px"><button class="btn btn-primary" id="m-print">${icon('print')} Imprimer les badges</button></div></div>
     <div class="info-box mb no-print" id="m-addr"></div>
@@ -214,19 +217,23 @@ export async function renderMatricules(el) {
   el.querySelector('#m-q').oninput = (e) => { f.q = e.target.value; deb(); };
   el.querySelector('#m-print').onclick = () => window.print();
   el.querySelector('[data-import]').onclick = () => modal({
-    title: 'Importer des opérateurs (CSV)', wide: true,
-    body: `<p>Colonnes (séparateur <code>;</code> ou <code>,</code>) : <code>matricule;nom;prenom;service;affectation;poste;telephone</code>.
-      Les services et affectations inconnus sont créés automatiquement. Le poste doit correspondre au nom d'un poste existant (ex. « Poste 3 »).
-      Un matricule existant est mis à jour.</p>
-      <div class="field"><input type="file" id="imp-file" accept=".csv,text/csv"></div>
-      <div class="field"><label>Ou coller le contenu</label><textarea id="imp-text" rows="8" placeholder="matricule;nom;prenom;service;affectation;poste&#10;4587;BEN ALI;Mohamed;Production;Injection;Poste 3"></textarea></div>`,
-    onOpen: (b) => { b.querySelector('#imp-file').onchange = async (e) => { const file = e.target.files[0]; if (file) b.querySelector('#imp-text').value = await file.text(); }; },
+    title: 'Importer le personnel', wide: true,
+    body: `<p><strong>Fichier Excel (.xlsx)</strong> : colonnes <code>Matricule</code>, <code>Nom</code>, <code>Prénom</code>, <code>Fonction</code>, <code>Affectation</code> (facultative). Toutes les feuilles sont lues ; le <strong>régime</strong> (mensuel / horaire) est déduit du nom de la feuille.
+      Les affectations inconnues sont créées. Un matricule existant est mis à jour.</p>
+      <div class="field"><input type="file" id="imp-file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div>
+      <label class="check"><input type="checkbox" id="imp-replace"> Remplacer tout le personnel : les personnes absentes du fichier sont retirées (désactivées si elles ont un historique)</label>
+      <details class="mt"><summary class="muted">Ou coller un CSV</summary><textarea id="imp-text" rows="6" placeholder="matricule;nom;prenom;service;affectation;poste"></textarea></details>`,
     actions: [{ label: 'Annuler', value: null }, {
       label: 'Importer', class: 'btn-primary',
       onClick: async (b) => {
-        const r = await post('/api/employees/import', { csv: b.querySelector('#imp-text').value });
-        toast(`${r.created} créé(s), ${r.updated} mis à jour${r.errors.length ? `, ${r.errors.length} erreur(s)` : ''}`, r.errors.length ? 'warning' : 'success', { timeout: 8000 });
-        if (r.errors.length) await modal({ title: "Erreurs d'import", body: `<ul>${r.errors.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`, actions: [{ label: 'Fermer', value: true }] });
+        const file = b.querySelector('#imp-file').files[0];
+        const remplacer = b.querySelector('#imp-replace').checked;
+        if (remplacer && !await confirmDialog('Remplacer tout le personnel', 'Les personnes absentes du fichier seront retirées de la liste. Continuer ?', { danger: true, confirmLabel: 'Remplacer' })) return false;
+        let r;
+        if (file && /\.xlsx$/i.test(file.name)) r = await post('/api/employees/import-xlsx', { data: await fileToBase64(file), remplacer });
+        else r = await post('/api/employees/import', { csv: file ? await file.text() : b.querySelector('#imp-text').value });
+        toast(`${r.created} ajouté(s), ${r.updated} mis à jour${r.removed ? `, ${r.removed} retiré(s)` : ''}${r.deactivated ? `, ${r.deactivated} désactivé(s)` : ''}${r.errors.length ? `, ${r.errors.length} remarque(s)` : ''}`, r.errors.length ? 'warning' : 'success', { timeout: 9000 });
+        if (r.errors.length) await modal({ title: "Remarques sur l'import", body: `<ul>${r.errors.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`, actions: [{ label: 'Fermer', value: true }] });
         load();
       },
     }],

@@ -5,3 +5,6 @@ data/
 *.db-shm
 .env
 certs/
+base.xlsx
+*.xlsx
+data-ancienne-*/

@@ -25,6 +25,17 @@ Si la société le souhaite, l'administrateur peut rendre la validation RH oblig
 >
 > 📱 **Utilisation sur téléphones et tablettes dans la société** : suivez le guide pas à pas [INSTALLATION-RESEAU.md](INSTALLATION-RESEAU.md).
 
+## Démarrer avec le VRAI personnel
+
+1. Copiez votre fichier Excel du personnel dans le dossier, sous le nom **`base.xlsx`**. Il doit avoir une feuille « régime mensuel » et une feuille « régime horaire », avec les colonnes Matricule, Nom, Prénom, Fonction et Affectation.
+2. Double-cliquez sur **`INITIALISER-BASE-REELLE.bat`**. Il :
+   - met les anciennes données de côté, sans rien effacer ;
+   - importe le personnel ;
+   - crée les comptes `Karim`, `Marwen`, `RH`, `Gardien` et `Admin`. Leur mot de passe de première connexion est identique à l'identifiant, et un mot de passe personnel est exigé tout de suite après.
+3. Double-cliquez ensuite sur **`DEMARRER.bat`** pour utiliser l'application.
+
+Plus tard, pour mettre à jour la liste, passez par **Admin → Matricules → Importer le personnel (Excel)**.
+
 ## Démarrage rapide
 
 Il faut **Node.js 22.5 ou plus récent**. L'application n'a besoin d'aucun serveur de base de données : elle utilise SQLite, intégré à Node.

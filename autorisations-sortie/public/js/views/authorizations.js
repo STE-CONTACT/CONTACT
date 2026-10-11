@@ -33,7 +33,7 @@ function renderStep1(el) {
       results.innerHTML = current.length ? current.map((e, i) => `<button type="button" class="result-item" data-i="${i}">
         ${avatar(e.id, e.photo, e.prenom, e.nom)}
         <div class="grow"><div class="name"><span class="mat">${esc(e.matricule)}</span> ${esc(e.nom)} ${esc(e.prenom)}</div>
-        <div class="meta">${esc(e.equipe || '—')} · ${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}</div></div>
+        <div class="meta">${esc(e.equipe || '—')}${e.fonction ? ` · ${esc(e.fonction)}` : ''}${e.poste_nom ? ` · ${posteLabel(e.poste_nom, e.poste_debut, e.poste_fin)}` : ''}</div></div>
         ${icon('plus')}</button>`).join('') : `<div class="empty">Aucun opérateur trouvé${isRole('chef') ? ' dans vos affectations' : ''}.</div>`;
     } catch (e) { results.innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
   };
@@ -82,7 +82,7 @@ function renderForm(el, emp) {
   el.innerHTML = `
     <div class="card f-emp">${avatar(emp.id, emp.photo, emp.prenom, emp.nom)}
       <div class="grow"><div class="name"><span class="mat">${esc(emp.matricule)}</span> ${esc(emp.prenom)} ${esc(emp.nom)}</div>
-      <div class="meta">${esc(emp.equipe || '')} · ${posteLabel(emp.poste_nom, emp.poste_debut, emp.poste_fin)}</div></div>
+      <div class="meta">${esc(emp.equipe || '')}${emp.fonction ? ` · ${esc(emp.fonction)}` : ''}${emp.regime ? ` · ${esc(emp.regime)}` : ''}${emp.poste_nom ? ` · ${posteLabel(emp.poste_nom, emp.poste_debut, emp.poste_fin)}` : ''}</div></div>
       <button class="btn btn-sm" data-change type="button">Changer</button></div>
     <form class="card" id="auth-form" novalidate>
       <label>L'opérateur revient-il ?</label>

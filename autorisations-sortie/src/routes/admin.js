@@ -14,6 +14,8 @@ const { publicUser } = require('../middleware/auth');
 const { createBackup, listBackups, pruneBackups, backupPath } = require('../lib/backup');
 const { parseCsv } = require('../lib/csv');
 const { contentMatches } = require('../lib/filecheck');
+const { readPersonnelXlsx } = require('../lib/import-personnel');
+const { importPeople } = require('../services/personnel');
 
 const PHOTO_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
@@ -95,7 +97,7 @@ module.exports = function adminRoutes(ctx) {
       actif: body.actif !== undefined ? (bool(body.actif) ? 1 : 0) : existing?.actif ?? 1,
     };
     if (!u.nom || !u.prenom) throw badRequest('Nom et prénom obligatoires');
-    if (!/^[a-z0-9._-]{3,50}$/.test(u.username)) throw badRequest("Identifiant invalide (3 à 50 caractères : lettres, chiffres, . _ -)");
+    if (!/^[a-z0-9._-]{2,50}$/.test(u.username)) throw badRequest("Identifiant invalide (2 à 50 caractères : lettres, chiffres, . _ -)");
     if (!ROLES.includes(u.role)) throw badRequest('Rôle invalide');
     if (u.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)) throw badRequest('Email invalide');
     if (u.team_id && !db.get('SELECT id FROM teams WHERE id = ?', u.team_id)) throw badRequest('Affectation inconnue');
@@ -324,7 +326,7 @@ module.exports = function adminRoutes(ctx) {
   router.delete('/teams/:id', admin, (req, res) => res.json(deleteOrDeactivate('teams', Number(req.params.id), req, req.user, 'team', 'EQUIPE')));
 
   // ================================================================ OPÉRATEURS
-  const EMP_SELECT = `SELECT e.id, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.photo, e.actif, e.created_at,
+  const EMP_SELECT = `SELECT e.id, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.photo, e.actif, e.created_at,
     s.nom AS service, t.nom AS equipe, sh.nom AS poste_nom, sh.heure_debut AS poste_debut, sh.heure_fin AS poste_fin
     FROM employees e LEFT JOIN services s ON s.id = e.service_id LEFT JOIN teams t ON t.id = e.team_id LEFT JOIN shifts sh ON sh.id = e.shift_id`;
 
@@ -345,6 +347,7 @@ module.exports = function adminRoutes(ctx) {
     }
     if (req.query.team_id) { where.push('e.team_id = ?'); params.push(Number(req.query.team_id)); }
     if (req.query.service_id) { where.push('e.service_id = ?'); params.push(Number(req.query.service_id)); }
+    if (['Mensuel', 'Horaire'].includes(req.query.regime)) { where.push('e.regime = ?'); params.push(req.query.regime); }
     if (req.query.actif === '1') where.push('e.actif = 1');
     if (req.query.actif === '0') where.push('e.actif = 0');
     const limit = Math.min(1000, Number(req.query.limit) || 500);
@@ -375,6 +378,8 @@ module.exports = function adminRoutes(ctx) {
       team_id: body.team_id !== undefined ? idOrNull(body.team_id) : existing?.team_id ?? null,
       shift_id: body.shift_id !== undefined ? idOrNull(body.shift_id) : existing?.shift_id ?? null,
       telephone: body.telephone !== undefined ? (str(body.telephone, 30) || null) : existing?.telephone ?? null,
+      fonction: body.fonction !== undefined ? (str(body.fonction, 80) || null) : existing?.fonction ?? null,
+      regime: body.regime !== undefined ? (['Mensuel', 'Horaire'].includes(body.regime) ? body.regime : null) : existing?.regime ?? null,
       actif: body.actif !== undefined ? (bool(body.actif) ? 1 : 0) : existing?.actif ?? 1,
     };
     if (!/^[A-Za-z0-9-]{1,30}$/.test(e.matricule)) throw badRequest('Matricule invalide (lettres, chiffres, tiret)');
@@ -387,8 +392,8 @@ module.exports = function adminRoutes(ctx) {
     const now = clock.nowIso();
     try {
       const id = db.tx(() => {
-        const r = db.run(`INSERT INTO employees (matricule, nom, prenom, service_id, team_id, shift_id, telephone, qr_token, actif, created_at, updated_at)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?)`, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, randomToken(12), e.actif, now, now);
+        const r = db.run(`INSERT INTO employees (matricule, nom, prenom, service_id, team_id, shift_id, telephone, fonction, regime, qr_token, actif, created_at, updated_at)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, randomToken(12), e.actif, now, now);
         audit.log({ user: req.user, action: 'OPERATEUR_CREE', entityType: 'employee', entityId: Number(r.lastInsertRowid), after: e, req });
         return Number(r.lastInsertRowid);
       });
@@ -403,8 +408,8 @@ module.exports = function adminRoutes(ctx) {
     const e = validateEmployee(req.body, before);
     try {
       db.tx(() => {
-        db.run('UPDATE employees SET matricule=?, nom=?, prenom=?, service_id=?, team_id=?, shift_id=?, telephone=?, actif=?, updated_at=? WHERE id=?',
-          e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.actif, clock.nowIso(), id);
+        db.run('UPDATE employees SET matricule=?, nom=?, prenom=?, service_id=?, team_id=?, shift_id=?, telephone=?, fonction=?, regime=?, actif=?, updated_at=? WHERE id=?',
+          e.matricule, e.nom, e.prenom, e.service_id, e.team_id, e.shift_id, e.telephone, e.fonction, e.regime, e.actif, clock.nowIso(), id);
         audit.log({ user: req.user, action: 'OPERATEUR_MODIFIE', entityType: 'employee', entityId: id, before: pickKeys(before, Object.keys(e)), after: e, req });
       });
     } catch (err) { if (isUniqueError(err)) throw conflict('Ce matricule existe déjà'); throw err; }
@@ -457,6 +462,18 @@ module.exports = function adminRoutes(ctx) {
     db.run('UPDATE employees SET qr_token = ?, updated_at = ? WHERE id = ?', randomToken(12), clock.nowIso(), id);
     audit.log({ user: req.user, action: 'OPERATEUR_QR_REGENERE', entityType: 'employee', entityId: id, req });
     res.json({ ok: true });
+  });
+
+  /** Import du fichier Excel du personnel (.xlsx, toutes les feuilles : régime mensuel / horaire). */
+  router.post('/employees/import-xlsx', admin, async (req, res) => {
+    const buf = Buffer.from(String(req.body.data || ''), 'base64');
+    if (!buf.length || buf.subarray(0, 2).toString('latin1') !== 'PK') throw badRequest('Fichier Excel (.xlsx) attendu');
+    let parsed;
+    try { parsed = await readPersonnelXlsx(buf); } catch { throw badRequest('Fichier Excel illisible'); }
+    if (!parsed.people.length) throw badRequest(`Aucune personne trouvée. ${parsed.errors.join(' ; ')}`);
+    const report = importPeople(ctx, parsed.people, { user: req.user, req, replace: bool(req.body.remplacer) });
+    report.errors = [...parsed.errors, ...report.errors];
+    res.json(report);
   });
 
   /** Import CSV : matricule;nom;prenom;service;affectation;poste;telephone (mise à jour si le matricule existe). */

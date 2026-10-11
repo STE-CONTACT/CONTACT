@@ -40,6 +40,10 @@ function openDatabase(dbPath) {
  * SQLite ne permet pas de modifier une contrainte : la table est reconstruite à l'identique, données conservées.
  */
 function migrate(db, schema) {
+  // v3 : fonction et régime (mensuel / horaire) de chaque personne
+  const empCols = db.prepare('PRAGMA table_info(employees)').all().map((c) => c.name);
+  if (!empCols.includes('fonction')) db.exec('ALTER TABLE employees ADD COLUMN fonction TEXT');
+  if (!empCols.includes('regime')) db.exec('ALTER TABLE employees ADD COLUMN regime TEXT');
   const cols = db.prepare('PRAGMA table_info(exit_authorizations)').all().map((c) => c.name);
   if (cols.includes('avec_retour')) return;
   const create = /CREATE TABLE IF NOT EXISTS exit_authorizations \([\s\S]*?\n\);/.exec(schema)[0]

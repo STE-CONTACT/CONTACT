@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS employees (
   team_id    INTEGER REFERENCES teams(id),
   shift_id   INTEGER REFERENCES shifts(id),
   telephone  TEXT,
+  fonction   TEXT,                 -- ex. Opératrice, Chef d'équipe (information)
+  regime     TEXT,                 -- Mensuel / Horaire (information)
   photo      TEXT,
   qr_token   TEXT NOT NULL UNIQUE,
   actif      INTEGER NOT NULL DEFAULT 1,

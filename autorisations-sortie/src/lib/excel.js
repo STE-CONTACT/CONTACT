@@ -36,7 +36,8 @@ async function buildReport(rows, { entreprise, periode, tz, generePar }) {
     { h: 'Matricule', w: 10, v: (a) => a.matricule },
     { h: 'Nom', w: 18, v: (a) => a.emp_nom },
     { h: 'Prénom', w: 14, v: (a) => a.emp_prenom },
-    { h: 'Service', w: 14, v: (a) => a.service || '' },
+    { h: 'Fonction', w: 18, v: (a) => a.fonction || a.service || '' },
+    { h: 'Régime', w: 10, v: (a) => a.regime || '' },
     { h: 'Affectation', w: 14, v: (a) => a.equipe || '' },
     { h: 'Retour', w: 12, v: (a) => (a.avec_retour ? 'Avec retour' : 'Sans retour') },
     { h: 'Motif', w: 26, v: (a) => a.motif },
@@ -131,7 +132,8 @@ async function buildReport(rows, { entreprise, periode, tz, generePar }) {
     return [...m.entries()].sort((x, y) => y[1] - x[1]);
   };
   block('Par affectation', group((a) => a.equipe));
-  block('Par service', group((a) => a.service));
+  block('Par régime', group((a) => a.regime));
+  block('Par fonction', group((a) => a.fonction));
   block('Par motif', group((a) => a.motif));
   block('Par chef / responsable', group((a) => a.valideur || a.createur));
   const top = group((a) => `${a.matricule} — ${a.emp_prenom} ${a.emp_nom}`).slice(0, 10);

@@ -17,7 +17,7 @@ const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
 const AUTH_SELECT = `
 SELECT a.*,
-  e.matricule, e.nom AS emp_nom, e.prenom AS emp_prenom, e.photo AS emp_photo, e.team_id, e.service_id, e.shift_id,
+  e.matricule, e.nom AS emp_nom, e.prenom AS emp_prenom, e.photo AS emp_photo, e.fonction, e.regime, e.team_id, e.service_id, e.shift_id,
   t.nom AS equipe, s.nom AS service, sh.nom AS poste_nom, sh.heure_debut AS poste_debut, sh.heure_fin AS poste_fin,
   uc.prenom || ' ' || uc.nom AS createur, ua.prenom || ' ' || ua.nom AS valideur,
   ur.prenom || ' ' || ur.nom AS refuseur, ux.prenom || ' ' || ux.nom AS annuleur,
@@ -679,6 +679,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
     if (range.from) { where.push('a.date_sortie >= ?'); params.push(range.from); }
     if (range.to) { where.push('a.date_sortie <= ?'); params.push(range.to); }
     if (f.service_id) { where.push('e.service_id = ?'); params.push(Number(f.service_id)); }
+    if (['Mensuel', 'Horaire'].includes(f.regime)) { where.push('e.regime = ?'); params.push(f.regime); }
     if (f.team_id) { where.push('e.team_id = ?'); params.push(Number(f.team_id)); }
     if (f.chef_id) { where.push('a.created_by = ?'); params.push(Number(f.chef_id)); }
     if (f.guard_id) { where.push('(gm.guard_id = ? OR gm.guard_retour_id = ?)'); params.push(Number(f.guard_id), Number(f.guard_id)); }

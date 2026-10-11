@@ -53,13 +53,13 @@ test('Le RH télécharge le fichier Excel de suivi', async () => {
   ws.eachRow((row, n) => { if (n > 5) values.push(row.values.slice(1)); });
   const mohamed = values.find((v) => v[1] === '4587');
   assert.ok(mohamed, 'ligne 4587 présente');
-  assert.equal(mohamed[6], 'Avec retour');
-  assert.equal(mohamed[11], '23:35');
-  assert.equal(mohamed[12], '00:48 (J+1)');
-  assert.equal(mohamed[13], '1 h 13 min');
+  assert.equal(mohamed[7], 'Avec retour');
+  assert.equal(mohamed[12], '23:35');
+  assert.equal(mohamed[13], '00:48 (J+1)');
+  assert.equal(mohamed[14], '1 h 13 min');
   const sami = values.find((v) => v[1] === '4600');
-  assert.equal(sami[6], 'Sans retour');
-  assert.equal(sami[15], 'Sortie sans retour');
+  assert.equal(sami[7], 'Sans retour');
+  assert.equal(sami[16], 'Sortie sans retour');
   assert.ok(wb.getWorksheet('Synthèse'));
   // Le gardien n'a pas accès au rapport
   const g = await fetch(`${S.base}/api/rapport.xlsx`, { headers: { Cookie: gardien.cookie() } });

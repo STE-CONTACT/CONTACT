@@ -13,7 +13,8 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
     "seed:demo": "node --disable-warning=ExperimentalWarning src/db/seed-demo.js",
     "backup": "node --disable-warning=ExperimentalWarning src/db/backup-cli.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "init:reel": "node --disable-warning=ExperimentalWarning src/db/init-reel.js"
   },
   "license": "UNLICENSED",
   "dependencies": {

@@ -8,7 +8,7 @@ const PERIODES = [['aujourdhui', "Aujourd'hui"], ['hier', 'Hier'], ['semaine', '
 
 export async function render(el, { advanced }) {
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
-  const f = { page: 1, size: 25, periode: params.get('periode') ?? (advanced ? '' : 'mois'), q: '', matricule: '', nom: '', prenom: '', date_from: '', date_to: '', service_id: '', team_id: '', chef_id: '', guard_id: '', statut: params.get('statut') || '', type_sortie: '' };
+  const f = { page: 1, size: 25, periode: params.get('periode') ?? (advanced ? '' : 'mois'), q: '', matricule: '', nom: '', prenom: '', date_from: '', date_to: '', service_id: '', team_id: '', chef_id: '', guard_id: '', statut: params.get('statut') || '', type_sortie: '', regime: '' };
   const [services, teams, chefs, guards] = await Promise.all([
     get('/api/services'), get('/api/teams'),
     isRole('chef') ? Promise.resolve([]) : get('/api/users/lookup?role=chef'),
@@ -28,6 +28,7 @@ export async function render(el, { advanced }) {
         <div class="field"><label>Recherche libre</label><input type="search" data-f="q" placeholder="Matricule, nom, prénom, n°"></div>
         <div class="field"><label>Statut</label><select data-f="statut">${selectOptions(Object.entries(STATUTS).map(([id, nom]) => ({ id, nom })), f.statut, { empty: 'Tous' })}</select></div>
         <div class="field"><label>Type de sortie</label><select data-f="type_sortie">${selectOptions(Object.entries(state.settings.types_sortie).map(([id, nom]) => ({ id, nom })), '', { empty: 'Tous' })}</select></div>
+        <div class="field"><label>Régime</label><select data-f="regime"><option value="">Tous</option><option value="Horaire">Horaire</option><option value="Mensuel">Mensuel</option></select></div>
         <div class="field"><label>Affectation</label><select data-f="team_id">${selectOptions(teams, '', { empty: 'Toutes' })}</select></div>
       </div>
       <details ${advanced ? 'open' : ''}><summary class="muted" style="cursor:pointer;margin-bottom:10px">Plus de critères</summary>
@@ -83,6 +84,7 @@ export async function renderReport(el) {
   el.innerHTML = `<div class="page-head"><div><h1>Rapport Excel de suivi</h1>
       <p>Fichier Excel présentable : liste détaillée des sorties (heures prévues et réelles, retours, retards) et une feuille de synthèse.</p></div></div>
     <div class="card">
+      <div class="field"><label>Régime</label><select id="r-regime" style="max-width:320px"><option value="">Tous (mensuel et horaire)</option><option value="Horaire">Régime horaire</option><option value="Mensuel">Régime mensuel</option></select></div>
       <div class="field"><label>Affectation</label><select id="r-team" style="max-width:320px">${selectOptions(teams, '', { empty: 'Toutes les affectations' })}</select></div>
       <div class="r-grid">
         <button class="btn btn-success btn-lg" data-p="aujourdhui">${icon('download')} Aujourd'hui</button>
@@ -98,8 +100,9 @@ export async function renderReport(el) {
       </div>
     </div>`;
   const team = () => el.querySelector('#r-team').value;
-  el.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { window.location.href = `/api/rapport.xlsx${qs({ periode: b.dataset.p, team_id: team() })}`; }));
+  const regime = () => el.querySelector('#r-regime').value;
+  el.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { window.location.href = `/api/rapport.xlsx${qs({ periode: b.dataset.p, team_id: team(), regime: regime() })}`; }));
   el.querySelector('#r-custom').addEventListener('click', () => {
-    window.location.href = `/api/rapport.xlsx${qs({ date_from: el.querySelector('#r-from').value, date_to: el.querySelector('#r-to').value, team_id: team() })}`;
+    window.location.href = `/api/rapport.xlsx${qs({ date_from: el.querySelector('#r-from').value, date_to: el.querySelector('#r-to').value, team_id: team(), regime: regime() })}`;
   });
 }
