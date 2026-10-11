@@ -16,6 +16,8 @@ function horaires(a) {
     : `Sortie ${esc(a.heure_sortie_prevue)}${dayLabel(a.date_sortie)} → retour ${esc(a.heure_retour_prevue)}${a.retour_lendemain ? ' (lendemain)' : ''}`;
 }
 
+const par = (a) => (a && a.autorise_par ? `<p class="g-by">Autorisé par : <strong>${esc(a.autorise_par)}</strong></p>` : '');
+
 function person(e, big = false) {
   return `<div class="g-person">${avatar(e.employee_id ?? e.id, e.photo ?? e.emp_photo, e.prenom ?? e.emp_prenom, e.nom ?? e.emp_nom, big ? 'avatar-xl' : '')}
     <div><div class="g-name">${esc(e.prenom ?? e.emp_prenom)} ${esc(e.nom ?? e.emp_nom)}</div>
@@ -33,14 +35,14 @@ function verdictHtml(r) {
   const e = r.employee; const a = r.authorization;
   switch (r.verdict) {
     case 'VALIDEE':
-      return `<div class="g-verdict g-ok"><div class="g-title">✔ AUTORISÉ</div>${person(e, true)}<p class="g-hours">${horaires(a)}</p>
+      return `<div class="g-verdict g-ok"><div class="g-title">✔ AUTORISÉ</div>${person(e, true)}<p class="g-hours">${horaires(a)}</p>${par(a)}
         <button class="btn btn-success g-action" data-exit="${a.id}">VALIDER LA SORTIE</button></div>`;
     case 'VALIDEE_A_VENIR':
-      return `<div class="g-verdict g-wait"><div class="g-title">⏳ PAS ENCORE L'HEURE</div>${person(e, true)}<p class="g-hours">${horaires(a)}</p>
+      return `<div class="g-verdict g-wait"><div class="g-title">⏳ PAS ENCORE L'HEURE</div>${person(e, true)}<p class="g-hours">${horaires(a)}</p>${par(a)}
         <p>Sortie possible à partir de <strong>${fmtTime(new Date(new Date(a.debut_at).getTime() - tolMs()).toISOString())}</strong>.</p></div>`;
     case 'A_L_EXTERIEUR':
       return `<div class="g-verdict ${a.en_retard ? 'g-ko' : 'g-out'}"><div class="g-title">${a.en_retard ? '⚠ DEHORS — EN RETARD' : '↩ DEHORS'}</div>${person(e, true)}
-        <p class="g-hours">Sorti à ${fmtTime(a.heure_sortie_reelle)} · retour prévu ${esc(a.heure_retour_prevue)}</p>
+        <p class="g-hours">Sorti à ${fmtTime(a.heure_sortie_reelle)} · retour prévu ${esc(a.heure_retour_prevue)}</p>${par(a)}
         <button class="btn btn-primary g-action" data-return="${a.id}">CONFIRMER LE RETOUR</button></div>`;
     default: {
       const d = r.derniere_demande;
@@ -53,7 +55,7 @@ function verdictHtml(r) {
 function doneHtml(a, kind) {
   if (kind === 'return') return `<div class="g-verdict g-ok"><div class="g-title">✔ RETOUR ENREGISTRÉ — ${fmtTime(a.heure_retour_reel)}</div>${person(a)}<p class="g-hours">Durée de sortie : ${esc(a.duree_reelle)}</p></div>`;
   return `<div class="g-verdict g-ok"><div class="g-title">✔ SORTIE ENREGISTRÉE — ${fmtTime(a.heure_sortie_reelle)}</div>${person(a)}
-    <p class="g-hours">${a.avec_retour === false ? 'Sans retour (quitte le poste).' : `Retour prévu à ${esc(a.heure_retour_prevue)}.`}</p></div>`;
+    <p class="g-hours">${a.avec_retour === false ? 'Sans retour (quitte le poste).' : `Retour prévu à ${esc(a.heure_retour_prevue)}.`}</p>${par(a)}</div>`;
 }
 
 // ------------------------------------------------------------------ écran unique
@@ -113,7 +115,7 @@ export async function renderMain(el) {
       const b = await get('/api/gate/board', { background: true });
       const now = serverNow().getTime();
       const row = (a, action) => `<div class="g-row ${a.en_retard ? 'late' : ''}">${person(a)}
-        <div class="g-row-info">${action === 'return' ? `Sorti ${fmtTime(a.heure_sortie_reelle)} · retour ${esc(a.heure_retour_prevue)}${a.en_retard ? ' <span class="status st-RETARD">retard</span>' : ''}` : horaires(a)}</div>
+        <div class="g-row-info">${a.autorise_par ? `<div class="g-row-by">Autorisé par ${esc(a.autorise_par)}</div>` : ''}${action === 'return' ? `Sorti ${fmtTime(a.heure_sortie_reelle)} · retour ${esc(a.heure_retour_prevue)}${a.en_retard ? ' <span class="status st-RETARD">retard</span>' : ''}` : horaires(a)}</div>
         ${action === 'exit' ? (new Date(a.debut_at).getTime() - tolMs() > now
           ? `<span class="g-later">à ${fmtTime(new Date(new Date(a.debut_at).getTime() - tolMs()).toISOString())}</span>`
           : `<button class="btn btn-success g-row-btn" data-exit="${a.id}">SORTIE</button>`)

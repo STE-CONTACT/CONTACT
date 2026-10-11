@@ -110,7 +110,9 @@ test('Le RH peut aussi donner une autorisation (tout le personnel), valable imm�
   assert.equal(c.data.approved_by, S.ids.rh);
   const g = await gardien.get('/api/notifications');
   assert.ok(g.data.items.some((n) => n.entity_id === c.data.id && /Autorisée par/.test(n.message)));
-  assert.equal((await gardien.get('/api/gate/lookup?q=4101')).data.verdict, 'VALIDEE');
+  const v = (await gardien.get('/api/gate/lookup?q=4101')).data;
+  assert.equal(v.verdict, 'VALIDEE');
+  assert.equal(v.authorization.autorise_par, 'rh RH', 'le gardien voit qui a autorisé');
   // Le gardien ne peut toujours pas créer d'autorisation
   assert.equal((await gardien.post('/api/authorizations', { employee_id: S.ids.ines })).status, 403);
 });

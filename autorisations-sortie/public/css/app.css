@@ -368,6 +368,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .g-verdict .g-hours { font-size: 1.25rem; margin: 14px 0 0; }
 .g-verdict p { margin: 8px 0 0; }
 .g-verdict .avatar { border: 3px solid rgba(255,255,255,.8); }
+.g-verdict .g-by { font-size: 1.1rem; margin-top: 10px; background: rgba(0,0,0,.18); display: inline-block; padding: 6px 14px; border-radius: 10px; }
+.g-row-by { font-size: .85rem; color: var(--gray-600); }
 .g-ok { background: var(--green); }
 .g-ko { background: var(--red); }
 .g-out { background: var(--blue); }

@@ -119,6 +119,7 @@ function createAuthorizationService({ db, settings, audit, notifier, realtime, c
       service: a.service, equipe: a.equipe, poste_nom: a.poste_nom, poste_debut: a.poste_debut, poste_fin: a.poste_fin,
       date_sortie: a.date_sortie, date_retour: a.date_retour, retour_lendemain: a.retour_lendemain,
       avec_retour: a.avec_retour, valable_jusqua: a.valable_jusqua, valable_jusqua_date: a.valable_jusqua_date,
+      autorise_par: a.valideur || a.createur, // nom du responsable / RH qui a donné l'autorisation
       heure_sortie_prevue: a.heure_sortie_prevue, heure_retour_prevue: a.heure_retour_prevue,
       debut_at: a.debut_at, fin_at: a.fin_at, approved_at: a.approved_at,
       heure_sortie_reelle: a.heure_sortie_reelle, heure_retour_reel: a.heure_retour_reel,
