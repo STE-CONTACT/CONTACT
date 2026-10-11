@@ -16,6 +16,13 @@ function cellText(v) {
   return String(v).trim();
 }
 
+/** Corrections d'orthographe demandées (fonction / affectation), appliquées à chaque import. */
+const CORRECTIONS = {
+  'technicien maintenace': 'TECHNICIEN MAINTENANCE',
+  'controleuse qualite': 'Contrôle Qualité',
+};
+const corrige = (v) => CORRECTIONS[norm(v)] || v;
+
 const COLS = {
   matricule: ['matricule', 'mat', 'mat.', 'n° matricule', 'numero'],
   nom: ['nom'],
@@ -55,8 +62,8 @@ async function readPersonnelXlsx(buffer) {
         matricule: get('matricule').replace(/\.0$/, ''),
         nom: get('nom').toUpperCase(),
         prenom: get('prenom').replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()),
-        fonction: get('fonction'),
-        affectation: get('affectation').toUpperCase(),
+        fonction: corrige(get('fonction')),
+        affectation: corrige(get('affectation')).toUpperCase(),
         regime: get('regime') ? (/mens/i.test(get('regime')) ? 'Mensuel' : 'Horaire') : sheetRegime,
       };
       if (!p.matricule || !p.nom) { errors.push(`${ws.name} ligne ${r} : matricule ou nom manquant`); return; }
