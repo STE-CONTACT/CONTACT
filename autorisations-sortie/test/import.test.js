@@ -35,7 +35,7 @@ test('Import Excel depuis l\'écran admin (remplacement du personnel)', async ()
     const list = (await admin.get('/api/employees')).data;
     const afef = list.find((e) => e.matricule === '16');
     assert.equal(afef.regime, 'Mensuel');
-    assert.equal(afef.equipe, 'PERSONNEL MENSUEL');
+    assert.equal(afef.equipe, 'Opératrice', 'régime mensuel : affectation = fonction du fichier');
     assert.equal(afef.prenom, 'Afef');
     const nejma = list.find((e) => e.matricule === '10012');
     assert.deepEqual([nejma.regime, nejma.equipe, nejma.fonction], ['Horaire', 'INJECTION', 'Opératrice']);

@@ -23,7 +23,8 @@ function importPeople({ db, audit }, people, { user = null, req = null, replace 
       const matricule = String(p.matricule || '').trim();
       if (!MATRICULE_RE.test(matricule)) { report.errors.push(`Matricule invalide « ${matricule} » (${p.nom || ''})`); continue; }
       if (!p.nom) { report.errors.push(`Matricule ${matricule} : nom manquant`); continue; }
-      const team = teamId(p.affectation || (p.regime === 'Mensuel' ? defaultAffectation : 'NON AFFECTÉ'));
+      // Sans colonne Affectation (feuille « régime mensuel ») : l'affectation est la fonction indiquée dans le fichier.
+      const team = teamId(p.affectation || p.fonction || (p.regime === 'Mensuel' ? defaultAffectation : 'NON AFFECTÉ'));
       const prenom = p.prenom || '-';
       const existing = db.get('SELECT id FROM employees WHERE matricule = ? COLLATE NOCASE', matricule);
       if (existing) {
